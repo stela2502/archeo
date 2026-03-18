@@ -1,3 +1,7 @@
+//! Minimal blocking client for interacting with an Ollama server.
+//!
+//! Provides a simple wrapper around the `/api/generate` endpoint.
+
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +30,7 @@ impl Default for Ollama {
 }
 
 impl Ollama {
+    /// Create a new Ollama client with a given base URL.
     pub fn new<S: Into<String>>(base_url: S) -> Self {
         Self {
             base_url: base_url.into(),
@@ -33,6 +38,7 @@ impl Ollama {
         }
     }
 
+    /// Send a prompt to the Ollama server and return the generated response.
     pub fn generate(&self, model: &str, prompt: &str) -> anyhow::Result<String> {
         let request = OllamaRequest {
             model,
@@ -49,5 +55,22 @@ impl Ollama {
 
         let parsed: OllamaResponse = response.json::<OllamaResponse>()?;
         Ok(parsed.response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_url_is_correct() {
+        let client = Ollama::default();
+        assert_eq!(client.base_url, "http://127.0.0.1:11434/api/generate");
+    }
+
+    #[test]
+    fn new_sets_base_url() {
+        let client = Ollama::new("http://example.com");
+        assert_eq!(client.base_url, "http://example.com");
     }
 }

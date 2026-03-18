@@ -11,7 +11,28 @@ pub enum ContentKind {
     Text,
     Table,
     Notebook,
+    Code,
+    Config,
+    Data,
+    Unknown,
 }
+
+impl ContentKind{
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ContentKind::Text => "text",
+            ContentKind::Table => "table",
+            ContentKind::Notebook => "notebook",
+            ContentKind::Code => "code",
+            ContentKind::Config => "config", 
+            ContentKind::Data => "data",
+            ContentKind::Unknown => "UNKNOWN",
+        }
+    }
+
+}
+
+
 
 #[derive(Debug, Clone)]
 pub struct ContentDescriptor {

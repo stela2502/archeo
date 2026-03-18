@@ -47,4 +47,16 @@ pub struct ContentCliArgs {
     /// Disable recursive traversal
     #[arg(long)]
     pub no_recursive_content: bool,
+
+    /// Short task/question for compressing file-level analyses
+    #[arg(long)]
+    pub content_task: Option<String>,
+
+    /// Additional instructions appended to the default content compression prompt
+    #[arg(long)]
+    pub content_extra: Option<String>,
+
+    /// Replace the default content compression prompt with text from file
+    #[arg(long)]
+    pub content_prompt_file: Option<PathBuf>,
 }

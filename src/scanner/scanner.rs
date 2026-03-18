@@ -1,20 +1,48 @@
+//! Scanner module
+//!
+//! Provides functionality to recursively scan directories and return files
+//! matching a configurable set of filters such as:
+//! - allowed extensions
+//! - excluded directories
+//! - file size limits
+//! - hidden file handling
+
 use std::fs;
-use std::path::{Path, PathBuf, Component};
+use std::path::{Component, Path, PathBuf};
 
 use walkdir::WalkDir;
 
 use super::scanner_config::ScanConfig;
 
+/// Scans a directory tree and returns files matching [`ScanConfig`].
+///
+/// # Example
+/// ```
+/// use archeo::scanner::scanner::Scanner;
+/// use archeo::scanner::scanner_config::ScanConfig;
+///
+/// let mut config = ScanConfig::default();
+/// config.allowed_extensions = vec!["rs".into()];
+///
+/// let scanner = Scanner::new(config);
+/// let files = scanner.scan("src").unwrap();
+/// ```
 #[derive(Debug, Clone)]
 pub struct Scanner {
     config: ScanConfig,
 }
 
 impl Scanner {
+    /// Create a new [`Scanner`] with the given configuration.
     pub fn new(config: ScanConfig) -> Self {
         Self { config }
     }
 
+    /// Recursively scan a directory and return matching files.
+    ///
+    /// # Errors
+    /// - If `root` does not exist
+    /// - If `root` is not a directory
     pub fn scan<P: AsRef<Path>>(&self, root: P) -> anyhow::Result<Vec<PathBuf>> {
         let root = root.as_ref();
 
@@ -26,87 +54,74 @@ impl Scanner {
             anyhow::bail!("Path is not a directory: {}", root.display());
         }
 
+        let walker = WalkDir::new(root)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|entry| self.should_descend(entry.path(), entry.file_type().is_dir(), root));
+
         let mut result = Vec::new();
 
-        let walker = WalkDir::new(root)
-        .follow_links(false)
-        .into_iter()
-        .filter_entry(|entry| {
+        for entry in walker.filter_map(Result::ok) {
             let path = entry.path();
 
-            // always keep the root
-            if path == root {
-                return true;
-            }
-
-            // prune excluded directories before descent
-            if entry.file_type().is_dir() {
-                if self.is_excluded_dir(entry.path()) {
-                    return false;
-                }
-                if !self.config.include_hidden {
-                    if let Some(name) = entry.path().file_name().and_then(|s| s.to_str()) {
-                        if self.is_hidden(name) {
-                            return false;
-                        }
-                    }
-                }
-            }
-
-            true
-        });
-
-        for entry in walker.filter_map(|e| e.ok()) {
-            let path = entry.path();
-
-            // skip root itself
             if path == root {
                 continue;
             }
 
-            // ignore directories in the result set
-            if entry.file_type().is_dir() {
-                continue;
-            }
-
-            // only files from here on
             if !entry.file_type().is_file() {
                 continue;
             }
 
-            // safety guard in case an excluded path still slips through
-            if path.components().any(|c| {
-                c.as_os_str()
-                    .to_str()
-                    .map(|s| self.is_excluded_dir(s))
-                    .unwrap_or(false)
-            }) {
-                continue;
+            if self.should_include_file(path) {
+                result.push(path.to_path_buf());
             }
-
-            // hidden filter
-            if !self.config.include_hidden && self.is_hidden(path) {
-                continue;
-            }
-
-            // extension filter
-            if !self.is_allowed_extension(path) {
-                continue;
-            }
-
-            // size filter
-            if !self.is_within_size(path) {
-                continue;
-            }
-
-            result.push(path.to_path_buf());
         }
 
         Ok(result)
     }
 
-    // --- helpers (methods, not free functions) ---
+    /// Determines if traversal should continue into a directory.
+    fn should_descend(&self, path: &Path, is_dir: bool, root: &Path) -> bool {
+        if path == root {
+            return true;
+        }
 
+        if is_dir {
+            if self.is_excluded_dir(path) {
+                return false;
+            }
+
+            if !self.config.include_hidden && self.is_hidden(path) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Determines if a file should be included in the result set.
+    fn should_include_file(&self, path: &Path) -> bool {
+        // safety guard
+        if self.is_excluded_dir(path) {
+            return false;
+        }
+
+        if !self.config.include_hidden && self.is_hidden(path) {
+            return false;
+        }
+
+        if !self.is_allowed_extension(path) {
+            return false;
+        }
+
+        if !self.is_within_size(path) {
+            return false;
+        }
+
+        true
+    }
+
+    /// Returns true if a file or directory is hidden (starts with `.`).
     fn is_hidden<P: AsRef<Path>>(&self, path: P) -> bool {
         path.as_ref()
             .file_name()
@@ -115,27 +130,26 @@ impl Scanner {
             .unwrap_or(false)
     }
 
+    /// Returns true if any component of the path matches an excluded directory.
+    ///
+    /// Matching is done on full path components, not substrings.
     fn is_excluded_dir<P: AsRef<Path>>(&self, path: P) -> bool {
         let path = path.as_ref();
 
-        path.components().any(|comp| {
-            match comp {
-                Component::Normal(name) => {
-                    if let Some(s) = name.to_str() {
-                        self.config.excluded_dirs.iter().any(|d| d == s)
-                    } else {
-                        false
-                    }
-                }
-                _ => false,
+        path.components().any(|comp| match comp {
+            Component::Normal(name) => {
+                name.to_str()
+                    .map(|s| self.config.excluded_dirs.iter().any(|d| d == s))
+                    .unwrap_or(false)
             }
+            _ => false,
         })
     }
 
+    /// Returns true if the file extension is allowed.
     fn is_allowed_extension(&self, path: &Path) -> bool {
-        let ext = match path.extension().and_then(|e| e.to_str()) {
-            Some(e) => e,
-            None => return false,
+        let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+            return false;
         };
 
         self.config
@@ -144,6 +158,7 @@ impl Scanner {
             .any(|allowed| allowed == ext)
     }
 
+    /// Returns true if file size is within configured limits.
     fn is_within_size(&self, path: &Path) -> bool {
         match fs::metadata(path) {
             Ok(meta) => meta.len() as usize <= self.config.max_file_size,
@@ -153,10 +168,11 @@ impl Scanner {
 }
 
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::{PathBuf, Path};
+    use std::path::{PathBuf};
 
     #[test]
     fn scan_src_folder_finds_rust_files() {

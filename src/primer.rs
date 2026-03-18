@@ -1,7 +1,18 @@
-use std::path::{Path, PathBuf};
-use std::fmt;
+//! CLI and inferred configuration for the project-level "primer" analysis.
+//!
+//! This module defines:
+//! - [`PrimerCliArgs`]: command-line inputs parsed via `clap`,
+//! - [`PrimerConfig`]: a normalized configuration derived from CLI and file-based inference.
+//!
+//! The typical flow is:
+//! 1. infer defaults from the provided file list,
+//! 2. apply CLI overrides,
+//! 3. pass the resulting config to the prompt builder.
+
+use std::path::PathBuf;
 use clap::Args;
 
+/// CLI arguments controlling the primer stage.
 #[derive(Args, Debug, Default, Clone)]
 pub struct PrimerCliArgs {
     /// Comma-separated languages (override auto-detection)
@@ -19,14 +30,28 @@ pub struct PrimerCliArgs {
     /// Disable technical debt analysis
     #[arg(long)]
     pub no_technical_debt: bool,
+
+    /// Short user task/question for the project-level AI analysis
+    #[arg(long)]
+    pub primer_task: Option<String>,
+
+    /// Additional instructions appended to the default primer prompt
+    #[arg(long)]
+    pub primer_extra: Option<String>,
 }
 
+/// Normalized configuration used by the primer stage.
 #[derive(Debug, Clone)]
 pub struct PrimerConfig {
+    /// Detected or user-specified programming languages.
     pub languages: Vec<String>,
+    /// Detected or user-specified project domains.
     pub domains: Vec<String>,
+    /// Additional hints derived from file names (reserved for future use).
     pub project_hints: Vec<String>,
+    /// Whether README advice should be included.
     pub include_readme_advice: bool,
+    /// Whether technical debt analysis should be included.
     pub include_technical_debt: bool,
 }
 
@@ -42,13 +67,17 @@ impl Default for PrimerConfig {
     }
 }
 
-impl PrimerConfig{
-    /// parse the CLI elements from the main input
+impl PrimerConfig {
+    /// Build a [`PrimerConfig`] from CLI arguments and a list of files.
+    ///
+    /// Order of operations:
+    /// 1. infer defaults from files,
+    /// 2. override with CLI values if provided.
     pub fn from_sources(cli: &PrimerCliArgs, files: &[PathBuf]) -> Self {
-        // --- 1. start with inferred defaults ---
+        // 1. inferred defaults
         let mut cfg = Self::infer_from_files(files);
 
-        // --- 2. CLI overrides ---
+        // 2. CLI overrides
         if let Some(langs) = &cli.languages {
             cfg.languages = langs
                 .split(',')
@@ -75,11 +104,12 @@ impl PrimerConfig{
 
         cfg
     }
-    
-    /// Infer a `PrimerConfig` from the provided file list by detecting
-    /// programming languages (via file extensions) and domain hints
-    /// (via filename patterns). Produces a best-effort, deduplicated
-    /// configuration used as defaults before CLI overrides are applied.
+
+    /// Infer configuration from file extensions and file names.
+    ///
+    /// - Languages are derived from file extensions.
+    /// - Domains are inferred from file name patterns.
+    /// - Results are deduplicated and sorted.
     pub fn infer_from_files(files: &[PathBuf]) -> Self {
         let mut cfg = Self::default();
 
@@ -98,7 +128,10 @@ impl PrimerConfig{
             if let Some(name) = f.file_name().and_then(|n| n.to_str()) {
                 let lower = name.to_lowercase();
 
-                if lower.contains("scrna") || lower.contains("singlecell") || lower.contains("single_cell") {
+                if lower.contains("scrna")
+                    || lower.contains("singlecell")
+                    || lower.contains("single_cell")
+                {
                     cfg.domains.push("single-cell RNA".to_string());
                 }
                 if lower.contains("snp") || lower.contains("variant") {
@@ -122,198 +155,93 @@ impl PrimerConfig{
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Primer {
-    config: PrimerConfig,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-
-impl fmt::Display for Primer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Primer configuration:")?;
-
-        if self.config.languages.is_empty() {
-            writeln!(f, "  languages: (none)")?;
-        } else {
-            writeln!(f, "  languages: {}", self.config.languages.join(", "))?;
-        }
-
-        if self.config.domains.is_empty() {
-            writeln!(f, "  domains: (none)")?;
-        } else {
-            writeln!(f, "  domains: {}", self.config.domains.join(", "))?;
-        }
-
-        if self.config.project_hints.is_empty() {
-            writeln!(f, "  hints: (none)")?;
-        } else {
-            writeln!(f, "  hints: {}", self.config.project_hints.join(", "))?;
-        }
-
-        writeln!(
-            f,
-            "  include_readme_advice: {}",
-            self.config.include_readme_advice
-        )?;
-
-        writeln!(
-            f,
-            "  include_technical_debt: {}",
-            self.config.include_technical_debt
-        )?;
-
-        Ok(())
-    }
-}
-
-impl Primer {
-    pub fn new(config: PrimerConfig) -> Self {
-        Self { config }
+    fn pb(s: &str) -> PathBuf {
+        PathBuf::from(s)
     }
 
-    pub fn build_prompt<P: AsRef<Path>>(&self, root: P, files: &[PathBuf]) -> String {
-        let root = root.as_ref();
+    #[test]
+    fn infer_from_files_detects_languages_and_domains() {
+        let files = vec![
+            pb("main.rs"),
+            pb("analysis.py"),
+            pb("script.sh"),
+            pb("vdj_pipeline.nf"),
+            pb("scrna_counts.tsv"),
+        ];
 
-        let mut out = String::new();
+        let cfg = PrimerConfig::infer_from_files(&files);
 
-        self.push_role_section(&mut out);
-        self.push_context_section(&mut out, root);
-        self.push_task_section(&mut out);
-        self.push_output_contract(&mut out);
-        self.push_files_section(&mut out, root, files);
+        assert!(cfg.languages.contains(&"Rust".to_string()));
+        assert!(cfg.languages.contains(&"Python".to_string()));
+        assert!(cfg.languages.contains(&"Shell".to_string()));
 
-        out
+        assert!(cfg.domains.contains(&"immune repertoire".to_string()));
+        assert!(cfg.domains.contains(&"data pipeline".to_string()));
+        assert!(cfg.domains.contains(&"single-cell RNA".to_string()));
     }
 
-    fn push_role_section(&self, out: &mut String) {
-            out.push_str(
-                "You are Archeo, an AI system for reconstructing the purpose, structure, and history \
-                 of old research and software folders.\n\n",
-            );
+    #[test]
+    fn infer_from_files_deduplicates_and_sorts() {
+        let files = vec![pb("a.rs"), pb("b.rs"), pb("c.py"), pb("d.py")];
 
-            out.push_str(
-                "Your job is not to praise the folder. Your job is to infer what was built, \
-                 what likely mattered, what is incomplete, and what should be documented.\n\n",
-            );
+        let cfg = PrimerConfig::infer_from_files(&files);
 
-            out.push_str(
-                "You must base your analysis ONLY on the provided evidence.\n\
-                 - Do NOT infer meaning from project names alone.\n\
-                 - Do NOT assume standard patterns (e.g. tokenization, pipelines, analyzers) \
-                   unless clearly supported by evidence.\n\
-                 - Do NOT invent functionality.\n\
-                 - If something is unclear, say so explicitly.\n\
-                 - Do NOT ask the user for clarification.\n\n",
-            );
-
-            out.push_str(
-                "Reasoning rules:\n\
-                 - Prefer concrete observations over speculation.\n\
-                 - Separate direct evidence from interpretation.\n\
-                 - Use cautious language (e.g. 'likely', 'appears to').\n\
-                 - Avoid confident statements without supporting evidence.\n\n",
-            );
+        assert_eq!(cfg.languages, vec!["Python".to_string(), "Rust".to_string()]);
     }
 
-    fn push_context_section(&self, out: &mut String, root: &Path) {
-        out.push_str("Context\n");
-        out.push_str("=======\n");
-        out.push_str(&format!("Root folder: {}\n", root.display()));
+    #[test]
+    fn from_sources_overrides_languages_and_domains() {
+        let files = vec![pb("main.rs")];
 
-        if !self.config.languages.is_empty() {
-            out.push_str("Primary languages:\n");
-            for lang in &self.config.languages {
-                out.push_str(&format!("- {}\n", lang));
-            }
-        }
+        let cli = PrimerCliArgs {
+            languages: Some("Go, Rust".to_string()),
+            domains: Some("bio, infra".to_string()),
+            ..Default::default()
+        };
 
-        if !self.config.domains.is_empty() {
-            out.push_str("Domain hints:\n");
-            for domain in &self.config.domains {
-                out.push_str(&format!("- {}\n", domain));
-            }
-        }
+        let cfg = PrimerConfig::from_sources(&cli, &files);
 
-        if !self.config.project_hints.is_empty() {
-            out.push_str("Additional project hints:\n");
-            for hint in &self.config.project_hints {
-                out.push_str(&format!("- {}\n", hint));
-            }
-        }
-
-        out.push('\n');
+        assert_eq!(cfg.languages, vec!["Go".to_string(), "Rust".to_string()]);
+        assert_eq!(cfg.domains, vec!["bio".to_string(), "infra".to_string()]);
     }
 
-    fn push_task_section(&self, out: &mut String) {
-        out.push_str("Task\n");
-        out.push_str("====\n");
-        out.push_str("- Reconstruct what this folder is about\n");
-        out.push_str("- Identify the likely main components\n");
-        out.push_str("- Infer the likely workflow or development goal\n");
-        out.push_str("- Highlight the files that appear central\n");
+    #[test]
+    fn from_sources_respects_boolean_flags() {
+        let files = vec![pb("main.rs")];
 
-        if self.config.include_technical_debt {
-            out.push_str("- Point out probable technical debt, oddities, or missing pieces\n");
-        }
+        let cli = PrimerCliArgs {
+            no_readme_advice: true,
+            no_technical_debt: true,
+            ..Default::default()
+        };
 
-        if self.config.include_readme_advice {
-            out.push_str("- Suggest what a useful README should contain\n");
-        }
+        let cfg = PrimerConfig::from_sources(&cli, &files);
 
-        out.push_str(
-            "- Be explicit when uncertain; do not invent facts that are not supported by the file inventory\n\n",
-        );
+        assert!(!cfg.include_readme_advice);
+        assert!(!cfg.include_technical_debt);
     }
 
-    fn push_output_contract(&self, out: &mut String) {
-        out.push_str("Required output format\n");
-        out.push_str("======================\n");
-        out.push_str("Return markdown with exactly these sections:\n\n");
-        out.push_str("## Short Summary\n");
-        out.push_str("A compact explanation of what this folder most likely is.\n\n");
-        out.push_str("## Main Components\n");
-        out.push_str("Bullet list of important subareas, files, or tool groups.\n\n");
-        out.push_str("## Likely Workflow\n");
-        out.push_str("Describe how the pieces probably fit together.\n\n");
-        out.push_str("## Important Files\n");
-        out.push_str("List the files that look most informative and explain why.\n\n");
+    #[test]
+    fn from_sources_does_not_overwrite_languages_with_empty_cli_values() {
+        let mut expected = PrimerConfig::default();
+        expected.languages = vec!["Rust".to_string()];
 
-        if self.config.include_technical_debt {
-            out.push_str("## Problems / Gaps\n");
-            out.push_str("List likely missing documentation, unfinished work, or technical debt.\n\n");
-        }
+        let cli = PrimerCliArgs {
+            languages: Some("Rust, , ".to_string()),
+            ..Default::default()
+        };
 
-        if self.config.include_readme_advice {
-            out.push_str("## README Suggestions\n");
-            out.push_str("Propose a concise README structure for this folder.\n\n");
-        }
+        let mut base = PrimerConfig::default();
+        base.languages = vec!["Rust".to_string()];
 
-        out.push_str(
-            "Do not wrap the whole answer in a code fence. Write normal markdown.\n\n",
-        );
+        let inferred = PrimerConfig::infer_from_files(&[PathBuf::from("main.rs")]);
+        let cfg = PrimerConfig::from_sources(&cli, &[PathBuf::from("main.rs")]);
+
+        assert_eq!(cfg.languages, inferred.languages);
     }
 
-    fn push_files_section(&self, out: &mut String, root: &Path, files: &[PathBuf]) {
-        out.push_str("File inventory\n");
-        out.push_str("==============\n");
-
-        if files.is_empty() {
-            out.push_str("No files were provided.\n");
-            return;
-        }
-
-        for file in files {
-            let display = match file.strip_prefix(root) {
-                Ok(rel) => rel.display().to_string(),
-                Err(_) => file.display().to_string(),
-            };
-            out.push_str(&format!("- {}\n", display));
-        }
-
-        out.push('\n');
-    }
-}
-
-pub fn build_prompt<P: AsRef<Path>>(root: P, files: &[PathBuf]) -> String {
-    Primer::new(PrimerConfig::default()).build_prompt(root, files)
 }
