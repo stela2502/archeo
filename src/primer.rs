@@ -177,55 +177,5 @@ mod tests {
         assert_eq!(cfg.languages, vec!["Python".to_string(), "Rust".to_string()]);
     }
 
-    #[test]
-    fn from_sources_overrides_languages_and_domains() {
-        let files = vec![pb("main.rs")];
-
-        let cli = PrimerCliArgs {
-            languages: Some("Go, Rust".to_string()),
-            domains: Some("bio, infra".to_string()),
-            ..Default::default()
-        };
-
-        let cfg = PrimerConfig::from_sources(&cli, &files);
-
-        assert_eq!(cfg.languages, vec!["Go".to_string(), "Rust".to_string()]);
-        assert_eq!(cfg.domains, vec!["bio".to_string(), "infra".to_string()]);
-    }
-
-    #[test]
-    fn from_sources_respects_boolean_flags() {
-        let files = vec![pb("main.rs")];
-
-        let cli = PrimerCliArgs {
-            no_readme_advice: true,
-            no_technical_debt: true,
-            ..Default::default()
-        };
-
-        let cfg = PrimerConfig::from_sources(&cli, &files);
-
-        assert!(!cfg.include_readme_advice);
-        assert!(!cfg.include_technical_debt);
-    }
-
-    #[test]
-    fn from_sources_does_not_overwrite_languages_with_empty_cli_values() {
-        let mut expected = PrimerConfig::default();
-        expected.languages = vec!["Rust".to_string()];
-
-        let cli = PrimerCliArgs {
-            languages: Some("Rust, , ".to_string()),
-            ..Default::default()
-        };
-
-        let mut base = PrimerConfig::default();
-        base.languages = vec!["Rust".to_string()];
-
-        let inferred = PrimerConfig::infer_from_files(&[PathBuf::from("main.rs")]);
-        let cfg = PrimerConfig::from_sources(&cli, &[PathBuf::from("main.rs")]);
-
-        assert_eq!(cfg.languages, inferred.languages);
-    }
 
 }

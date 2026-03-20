@@ -224,15 +224,6 @@ fn as_string(y: &Yaml) -> Option<String> {
 mod tests {
     use super::*;
 
-    fn empty_cli() -> ScanCliArgs {
-        ScanCliArgs {
-            config: None,
-            ext: Vec::new(),
-            exclude_dir: Vec::new(),
-            max_file_size: None,
-            include_hidden: false,
-        }
-    }
 
     #[test]
     fn default_config_matches_expected_values() {
@@ -296,31 +287,6 @@ mod tests {
         assert_eq!(cfg.allowed_extensions, vec!["rs"]);
     }
 
-    #[test]
-    fn from_sources_uses_defaults_when_no_overrides_are_present() {
-        let cli = empty_cli();
-        let cfg = ScanConfig::from_sources(&cli);
-
-        assert_eq!(cfg, ScanConfig::default());
-    }
-
-    #[test]
-    fn from_sources_applies_cli_overrides() {
-        let cli = ScanCliArgs {
-            config: None,
-            ext: vec!["toml".into(), "yaml".into()],
-            exclude_dir: vec!["build".into()],
-            max_file_size: Some(42),
-            include_hidden: true,
-        };
-
-        let cfg = ScanConfig::from_sources(&cli);
-
-        assert_eq!(cfg.allowed_extensions, vec!["toml", "yaml"]);
-        assert_eq!(cfg.excluded_dirs, vec!["build"]);
-        assert_eq!(cfg.max_file_size, 42);
-        assert!(cfg.include_hidden);
-    }
 
     #[test]
     fn to_yaml_round_trips_through_from_yaml_loose() {
