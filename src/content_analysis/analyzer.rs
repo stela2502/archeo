@@ -32,7 +32,7 @@ pub struct ContentAnalysisReport {
     /// of a [`ParseMode`].
     pub parse_mode: String,
 
-    /// Primer text used when constructing the AI prompt, if any.
+    /// Combined file-specific prompt block used when constructing the AI prompt.
     pub primer_used: Option<String>,
 
     /// Structured descriptor extracted from the file, if analysis reached that stage.
@@ -66,11 +66,6 @@ impl ContentAnalyzer {
     ///
     /// This method is best-effort: if analysis of one file fails, an `"error"`
     /// report is produced for that file and processing continues for the rest.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error only if allocation or another unexpected outer failure
-    /// prevents the method from producing the result vector.
     pub fn analyze_files(
         &self,
         files: &[PathBuf],
@@ -105,14 +100,8 @@ impl ContentAnalyzer {
     /// 2. Check whether the content configuration allows the path.
     /// 3. Resolve the matching rule and parse mode.
     /// 4. Build a [`ContentDescriptor`].
-    /// 5. Render the final AI prompt and call Ollama.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - `path` is not a file,
-    /// - the descriptor cannot be built,
-    /// - or Ollama generation fails.
+    /// 5. Build the combined file primer block.
+    /// 6. Render the final AI prompt and call Ollama.
     pub fn analyze_file(
         &self,
         path: &Path,
@@ -136,9 +125,8 @@ impl ContentAnalyzer {
             });
         }
 
-        let rule = self.config.rule_for_path(path);
-
-        if rule.parse_mode == ParseMode::Skip {
+        let parse_mode = self.config.rule_for_path(path);
+        if parse_mode == ParseMode::Skip {
             return Ok(ContentAnalysisReport {
                 path: path.to_path_buf(),
                 extension: self.config.extension_of(path),
@@ -150,10 +138,19 @@ impl ContentAnalyzer {
             });
         }
 
-        let descriptor = ContentDescriptor::from_path(path, &self.config, rule.parse_mode)
+        let descriptor = ContentDescriptor::from_path(path, &self.config, parse_mode)
             .with_context(|| format!("failed to build descriptor for {}", path.display()))?;
 
-        let primer = self.resolve_file_prompt(&descriptor, prompts);
+        prompts
+            .validate_internal_coverage()
+            .context("prompt defaults failed internal coverage validation")?;
+
+        let primer = self.combined_file_primer(&descriptor, prompts);
+        println!(
+            "\n=== FILE PRIMER [{}] ===\n{}\n=======================\n",
+            descriptor.path.display(),
+            primer
+        );    
         let prompt = self.build_prompt(&descriptor, prompts);
 
         let ai_response = ollama
@@ -163,7 +160,7 @@ impl ContentAnalyzer {
         Ok(ContentAnalysisReport {
             path: path.to_path_buf(),
             extension: descriptor.extension.clone(),
-            parse_mode: rule.parse_mode.as_str().to_string(),
+            parse_mode: parse_mode.as_str().to_string(),
             primer_used: Some(primer),
             descriptor: Some(descriptor),
             ai_response: Some(ai_response),
@@ -171,45 +168,45 @@ impl ContentAnalyzer {
         })
     }
 
-    /// Resolves the primer text for a specific file.
+    /// Return the combined file primer block for one descriptor.
     ///
-    /// A file-specific primer from [`ContentConfig`] takes precedence. If none
-    /// is configured, the default prompt from [`PromptDefaults`] is used.
-    fn resolve_file_prompt(
+    /// This combines:
+    /// - the global file-analysis task,
+    /// - the file-type-specific prompt resolved from [`PromptDefaults`],
+    /// - and optional global file-analysis extra instructions.
+    ///
+    /// This is the exact logical prompt block used to steer per-file analysis.
+    pub fn combined_file_primer(
         &self,
         descriptor: &ContentDescriptor,
         prompts: &PromptDefaults,
     ) -> String {
-        let config_primer = self.config.primer_for_path(&descriptor.path);
+        let mut out = String::new();
 
-        if !config_primer.trim().is_empty() {
-            return config_primer;
+        out.push_str(prompts.file_analysis_task(None).trim());
+        out.push_str("\n\nFile-type instructions:\n");
+        out.push_str(prompts.content_prompt_for(descriptor).trim());
+
+        if let Some(extra) = prompts.catalog.file_analysis_extra.as_deref() {
+            let extra = extra.trim();
+            if !extra.is_empty() {
+                out.push_str("\n\nAdditional instructions:\n");
+                out.push_str(extra);
+            }
         }
 
-        prompts.content_prompt_for(descriptor)
+        out
     }
 
     /// Builds the final prompt sent to Ollama for a single descriptor.
     ///
-    /// If a file-specific primer is configured, that primer is prepended to the
-    /// descriptor rendering. Otherwise the default prompt rendering from
-    /// [`PromptDefaults`] is used.
+    /// The prompt is fully driven by [`PromptDefaults`].
     fn build_prompt(
         &self,
         descriptor: &ContentDescriptor,
         prompts: &PromptDefaults,
     ) -> String {
-        let config_primer = self.config.primer_for_path(&descriptor.path);
-
-        if !config_primer.trim().is_empty() {
-            let mut out = String::new();
-            out.push_str(config_primer.trim());
-            out.push_str("\n\n");
-            out.push_str(&descriptor.render_for_prompt());
-            out
-        } else {
-            prompts.render_descriptor_prompt(descriptor)
-        }
+        prompts.render_descriptor_prompt(descriptor, None, None, None)
     }
 
     /// Renders a human-readable multi-file summary.
@@ -272,10 +269,6 @@ impl ContentAnalyzer {
     ///
     /// The provided `prompt` is prepended to the rendered detailed report
     /// summary and the combined prompt is sent to Ollama.
-    ///
-    /// # Errors
-    ///
-    /// Returns any error from the Ollama generation call.
     pub fn compress_reports_with_ai(
         reports: &[ContentAnalysisReport],
         ollama: &crate::ollama::Ollama,
@@ -283,9 +276,7 @@ impl ContentAnalyzer {
         prompt: &str,
     ) -> anyhow::Result<String> {
         let detailed = Self::render_detailed_summary(reports);
-
         let final_prompt = format!("{}\n\nFile analyses:\n\n{}", prompt, detailed);
-
         ollama.generate(model, &final_prompt)
     }
 }
@@ -362,5 +353,4 @@ mod tests {
         let separator_count = text.matches("\n---\n\n").count();
         assert_eq!(separator_count, 2);
     }
-
 }

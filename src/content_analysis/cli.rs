@@ -8,25 +8,18 @@ pub struct ContentCliArgs {
     #[arg(long)]
     pub content_analysis: bool,
 
-    /// Per-extension mode rule, e.g. "py=full", "csv=sampled", "bin=skip"
+    /// Per-extension mode rule.
+    /// Can be provided multiple times:
+    ///   --content-mode py=full --content-mode csv=sampled --content-mode bin=skip
     #[arg(long = "content-mode")]
     pub content_modes: Vec<String>,
 
-    /// Per-extension primer, e.g. "py=Explain the script purpose"
+    /// Per-extension primer rule.
+    /// Can be provided multiple times:
+    ///   --primer py="Explain the script purpose"
+    ///   --primer rs="Summarize module structure"
     #[arg(long = "content-primer")]
     pub content_primers: Vec<String>,
-
-    /// Per-extension primer loaded from file, e.g. "py=primers/python.txt"
-    #[arg(long = "content-primer-file")]
-    pub content_primer_files: Vec<String>,
-
-    /// Generic fallback primer for extensions without a dedicated primer
-    #[arg(long)]
-    pub content_default_primer: Option<String>,
-
-    /// Generic fallback primer loaded from file
-    #[arg(long)]
-    pub content_default_primer_file: Option<PathBuf>,
 
     /// Maximum bytes for fully read files
     #[arg(long, default_value_t = 150_000)]
@@ -48,15 +41,4 @@ pub struct ContentCliArgs {
     #[arg(long)]
     pub no_recursive_content: bool,
 
-    /// Short task/question for compressing file-level analyses
-    #[arg(long)]
-    pub content_task: Option<String>,
-
-    /// Additional instructions appended to the default content compression prompt
-    #[arg(long)]
-    pub content_extra: Option<String>,
-
-    /// Replace the default content compression prompt with text from file
-    #[arg(long)]
-    pub content_prompt_file: Option<PathBuf>,
 }

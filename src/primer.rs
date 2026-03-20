@@ -10,35 +10,7 @@
 //! 3. pass the resulting config to the prompt builder.
 
 use std::path::PathBuf;
-use clap::Args;
 
-/// CLI arguments controlling the primer stage.
-#[derive(Args, Debug, Default, Clone)]
-pub struct PrimerCliArgs {
-    /// Comma-separated languages (override auto-detection)
-    #[arg(long)]
-    pub languages: Option<String>,
-
-    /// Comma-separated domains (override auto-detection)
-    #[arg(long)]
-    pub domains: Option<String>,
-
-    /// Disable README suggestions
-    #[arg(long)]
-    pub no_readme_advice: bool,
-
-    /// Disable technical debt analysis
-    #[arg(long)]
-    pub no_technical_debt: bool,
-
-    /// Short user task/question for the project-level AI analysis
-    #[arg(long)]
-    pub primer_task: Option<String>,
-
-    /// Additional instructions appended to the default primer prompt
-    #[arg(long)]
-    pub primer_extra: Option<String>,
-}
 
 /// Normalized configuration used by the primer stage.
 #[derive(Debug, Clone)]
@@ -73,32 +45,44 @@ impl PrimerConfig {
     /// Order of operations:
     /// 1. infer defaults from files,
     /// 2. override with CLI values if provided.
-    pub fn from_sources(cli: &PrimerCliArgs, files: &[PathBuf]) -> Self {
-        // 1. inferred defaults
+    pub fn from_sources(
+        files: &[PathBuf],
+        languages: Option<&str>,
+        domains: Option<&str>,
+        no_readme_advice: bool,
+        no_technical_debt: bool,
+    ) -> Self {
         let mut cfg = Self::infer_from_files(files);
 
-        // 2. CLI overrides
-        if let Some(langs) = &cli.languages {
-            cfg.languages = langs
+        if let Some(langs) = languages {
+            let parsed: Vec<String> = langs
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect();
+
+            if !parsed.is_empty() {
+                cfg.languages = parsed;
+            }
         }
 
-        if let Some(domains) = &cli.domains {
-            cfg.domains = domains
+        if let Some(domains) = domains {
+            let parsed: Vec<String> = domains
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect();
+
+            if !parsed.is_empty() {
+                cfg.domains = parsed;
+            }
         }
 
-        if cli.no_readme_advice {
+        if no_readme_advice {
             cfg.include_readme_advice = false;
         }
 
-        if cli.no_technical_debt {
+        if no_technical_debt {
             cfg.include_technical_debt = false;
         }
 

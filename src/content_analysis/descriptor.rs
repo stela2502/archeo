@@ -6,51 +6,143 @@ use std::path::{Path, PathBuf};
 
 use crate::content_analysis::{ContentConfig, ParseMode};
 
-#[derive(Debug, Clone)]
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+/// High-level classification of a file's content.
+///
+/// This is used to decide how a file should be summarized and which
+/// prompt template or task description should be applied downstream.
+#[derive(Debug, Clone, EnumIter)]
 pub enum ContentKind {
+    /// Plain text-like content such as `.md`, `.txt`, or source files
+    /// that are currently treated as generic text.
     Text,
+
+    /// Delimited tabular content such as CSV or TSV files.
     Table,
+
+    /// Jupyter notebook content rendered from notebook cells.
     Notebook,
+
+    /// Source code content.
+    ///
+    /// Note: in the current implementation, this variant is defined
+    /// but not yet assigned by `from_path()`. Most non-table/non-notebook
+    /// files currently fall back to `Text`.
     Code,
+
+    /// Configuration-like content.
+    ///
+    /// Note: this variant is currently defined for future use but is not
+    /// yet assigned in `from_path()`.
     Config,
+
+    /// Structured data content.
+    ///
+    /// Note: this variant is currently defined for future use but is not
+    /// yet assigned in `from_path()`.
     Data,
+
+    /// Fallback for files that cannot be meaningfully classified.
+    ///
+    /// Note: this variant is currently defined but not yet actively used
+    /// in the construction logic.
     Unknown,
 }
 
-impl ContentKind{
+impl ContentKind {
+    /// Return a stable lowercase string label for this content kind.
+    ///
+    /// This is useful when building prompts, logs, or config lookups
+    /// without relying on the `Debug` representation.
     pub fn as_str(&self) -> &'static str {
         match self {
             ContentKind::Text => "text",
             ContentKind::Table => "table",
             ContentKind::Notebook => "notebook",
             ContentKind::Code => "code",
-            ContentKind::Config => "config", 
+            ContentKind::Config => "config",
             ContentKind::Data => "data",
             ContentKind::Unknown => "UNKNOWN",
         }
     }
-
 }
 
-
-
+/// A parsed, prompt-ready description of one input file.
+///
+/// `ContentDescriptor` is the central normalized representation that
+/// downstream prompt-building code consumes. It stores:
+///
+/// - file identity (`path`, `extension`)
+/// - coarse semantic classification (`kind`)
+/// - parsing strategy (`parse_mode`)
+/// - size/sampling metadata
+/// - extracted or rendered file content
+///
+/// The descriptor does not decide which prompt text to use, but it provides
+/// the information needed by that later resolution step.
 #[derive(Debug, Clone)]
 pub struct ContentDescriptor {
+    /// Original file path.
     pub path: PathBuf,
+
+    /// Normalized file extension as determined by `ContentConfig::extension_of`.
     pub extension: String,
+
+    /// High-level content class used by downstream prompt selection.
     pub kind: ContentKind,
+
+    /// Parse mode used to construct this descriptor.
     pub parse_mode: ParseMode,
+
+    /// Raw file size in bytes from filesystem metadata.
     pub file_size: usize,
+
+    /// True if the represented content was truncated relative to the original.
     pub is_truncated: bool,
+
+    /// True if the represented content is a sample rather than a full rendering.
     pub is_sample: bool,
+
+    /// Total number of data rows for tabular data, excluding the header row.
     pub total_rows: Option<usize>,
+
+    /// Total number of columns for tabular data.
     pub total_cols: Option<usize>,
+
+    /// Number of rows included in the rendered sample for tabular data.
     pub sampled_rows: Option<usize>,
+
+    /// Number of columns included in the rendered sample for tabular data.
     pub sampled_cols: Option<usize>,
+
+    /// Prompt-ready content extracted from the file.
+    ///
+    /// For text-like files this is either the full text, a truncated version,
+    /// or a sampled line view.
+    ///
+    /// For notebooks this is a rendered textual representation of cells.
+    ///
+    /// For tables this is a header plus a preview subset of rows/columns.
     pub content: String,
 }
 
 impl ContentDescriptor {
+    /// Build a [`ContentDescriptor`] from a file path using the configured
+    /// extension-based dispatch strategy.
+    ///
+    /// Current routing:
+    ///
+    /// - `ipynb` -> notebook rendering
+    /// - `csv`   -> delimited table parsing with `,`
+    /// - `tsv`   -> delimited table parsing with `\\t`
+    /// - other   -> generic text loading
+    ///
+    /// Important:
+    /// this method currently does not assign `ContentKind::Code`,
+    /// `ContentKind::Config`, `ContentKind::Data`, or `ContentKind::Unknown`.
+    /// All non-notebook/non-delimited files are treated as text.
     pub fn from_path(path: &Path, config: &ContentConfig, parse_mode: ParseMode) -> Result<Self> {
         let ext = config.extension_of(path);
 
@@ -62,6 +154,14 @@ impl ContentDescriptor {
         }
     }
 
+    /// Build a descriptor for a generic text-like file.
+    ///
+    /// Behavior depends on [`ParseMode`]:
+    ///
+    /// - `Full`: keep the entire file if it fits within `max_full_bytes`,
+    ///   otherwise truncate while preserving the start and end.
+    /// - `Sampled`: keep head/middle/tail line samples.
+    /// - `Skip`: returns an error because skipping should be handled earlier.
     fn from_text(path: &Path, config: &ContentConfig, parse_mode: ParseMode) -> Result<Self> {
         let file_size = fs::metadata(path)?.len() as usize;
         let raw = fs::read_to_string(path)
@@ -99,6 +199,17 @@ impl ContentDescriptor {
         })
     }
 
+    /// Build a descriptor for a Jupyter notebook file.
+    ///
+    /// The notebook JSON is parsed and each cell is rendered into a text block:
+    ///
+    /// - cell index
+    /// - cell type
+    /// - joined source text
+    ///
+    /// Outputs are currently ignored; only cell source content is included.
+    ///
+    /// Behavior then follows the same `Full` vs `Sampled` rules as text files.
     fn from_notebook(path: &Path, config: &ContentConfig, parse_mode: ParseMode) -> Result<Self> {
         let file_size = fs::metadata(path)?.len() as usize;
         let raw = fs::read_to_string(path)
@@ -152,6 +263,19 @@ impl ContentDescriptor {
         })
     }
 
+    /// Build a descriptor for a delimited text table such as CSV or TSV.
+    ///
+    /// The first line is treated as a header. Remaining lines are treated
+    /// as data rows.
+    ///
+    /// For `Full`, all rows and columns are included.
+    /// For `Sampled`, rows and columns are limited by the configured
+    /// `sample_rows` and `sample_cols`.
+    ///
+    /// The rendered content contains:
+    ///
+    /// - a `Headers:` section
+    /// - a `Preview:` section with sampled rows
     fn from_delimited(
         path: &Path,
         config: &ContentConfig,
@@ -238,6 +362,12 @@ impl ContentDescriptor {
         })
     }
 
+    /// Render the descriptor as a prompt-ready metadata block followed
+    /// by the extracted content body.
+    ///
+    /// This is the main bridge from the descriptor layer into the LLM prompt.
+    /// It serializes file metadata in a readable text format and appends
+    /// the content payload afterward.
     pub fn render_for_prompt(&self) -> String {
         let mut out = String::new();
 
@@ -268,6 +398,14 @@ impl ContentDescriptor {
         out
     }
 
+    /// Convert a notebook `source` field into plain text.
+    ///
+    /// Jupyter stores cell source either as:
+    ///
+    /// - one string
+    /// - an array of strings
+    ///
+    /// This method normalizes both forms into a single string.
     fn render_ipynb_source(source: Option<&Value>) -> String {
         match source {
             Some(Value::String(s)) => s.clone(),
@@ -284,6 +422,18 @@ impl ContentDescriptor {
         }
     }
 
+    /// Truncate a text payload while preserving the beginning and end.
+    ///
+    /// This tries to keep both early context and late context rather than
+    /// simply cutting at `max_bytes`.
+    ///
+    /// The output layout is:
+    ///
+    /// `head`
+    /// `[... truncated ...]`
+    /// `tail`
+    ///
+    /// UTF-8 character boundaries are preserved using [`safe_byte_slice`].
     fn truncate_text_preserving_context(text: &str, max_bytes: usize) -> String {
         if text.len() <= max_bytes {
             return text.to_string();
@@ -300,6 +450,11 @@ impl ContentDescriptor {
         )
     }
 
+    /// Return a substring bounded to valid UTF-8 character boundaries.
+    ///
+    /// Since byte indices may fall inside a multibyte code point, this method
+    /// adjusts the requested interval to the next valid start and previous
+    /// valid end boundary before slicing.
     fn safe_byte_slice(text: &str, start: usize, end: usize) -> String {
         let mut real_start = start.min(text.len());
         let mut real_end = end.min(text.len());
@@ -318,6 +473,16 @@ impl ContentDescriptor {
         }
     }
 
+    /// Build a line-sampled representation of a large text body.
+    ///
+    /// The sampling strategy is:
+    ///
+    /// - `head` lines from the start
+    /// - `middle` lines around the midpoint
+    /// - `tail` lines from the end
+    ///
+    /// If the file is already short enough to fit entirely into this budget,
+    /// the original text is returned unchanged.
     fn sample_text_lines(text: &str, head: usize, middle: usize, tail: usize) -> String {
         let lines: Vec<&str> = text.lines().collect();
 

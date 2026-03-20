@@ -32,15 +32,19 @@ impl Default for Ollama {
 impl Ollama {
     /// Create a new Ollama client with a given base URL.
     pub fn new<S: Into<String>>(base_url: S) -> Self {
+        let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build().unwrap();
+
         Self {
             base_url: base_url.into(),
-            client: Client::new(),
+            client,
         }
     }
 
     /// Send a prompt to the Ollama server and return the generated response.
     pub fn generate(&self, model: &str, prompt: &str) -> anyhow::Result<String> {
-        println!("{}",prompt );
+        //println!("{}",prompt );
         let request = OllamaRequest {
             model,
             prompt,

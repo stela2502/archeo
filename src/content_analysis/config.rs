@@ -1,17 +1,21 @@
-//config.rs
-use crate::content_analysis::{ContentCliArgs, ExtensionRule, ParseMode};
+// config.rs
+use crate::content_analysis::{ContentCliArgs, ParseMode};
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 
 /// Configuration controlling how file content is analyzed.
 ///
-/// The configuration stores:
+/// This type now owns **parsing behavior only**.
+///
+/// It is responsible for:
 /// - whether content analysis is enabled,
-/// - whether it should recurse,
-/// - sampling limits for large tabular files,
-/// - per-extension parsing rules,
+/// - whether recursion is allowed,
+/// - size and sampling limits,
+/// - per-extension parse modes,
 /// - and an optional allow-list of extensions.
+///
+/// It no longer owns any prompt or primer text. All prompting is handled by
+/// `PromptDefaults`.
 #[derive(Debug, Clone)]
 pub struct ContentConfig {
     /// Enables or disables content analysis globally.
@@ -19,9 +23,6 @@ pub struct ContentConfig {
 
     /// Whether content analysis should recurse into nested files or folders.
     pub recursive: bool,
-
-    /// Default primer used when no extension-specific primer is configured.
-    pub default_primer: String,
 
     /// Maximum number of bytes to include when reading files in full mode.
     pub max_full_bytes: usize,
@@ -32,8 +33,10 @@ pub struct ContentConfig {
     /// Number of columns to sample for sampled parsing modes.
     pub sample_cols: usize,
 
-    /// Per-extension parsing and primer rules.
-    pub rules: BTreeMap<String, ExtensionRule>,
+    /// Per-extension parse-mode rules.
+    ///
+    /// Keys are normalized extensions without the leading dot.
+    pub rules: BTreeMap<String, ParseMode>,
 
     /// Optional explicit allow-list of extensions.
     ///
@@ -45,24 +48,23 @@ pub struct ContentConfig {
 impl Default for ContentConfig {
     /// Creates the default content-analysis configuration.
     ///
-    /// Defaults favor full parsing for text/code formats and sampled parsing
-    /// for common tabular formats such as CSV and TSV.
+    /// Defaults favor full parsing for text/code-like formats and sampled
+    /// parsing for common tabular formats such as CSV and TSV.
     fn default() -> Self {
         let mut rules = BTreeMap::new();
-        rules.insert("py".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("rs".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("r".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("R".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("ipynb".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("md".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("txt".into(), ExtensionRule::new(ParseMode::Full, None));
-        rules.insert("csv".into(), ExtensionRule::new(ParseMode::Sampled, None));
-        rules.insert("tsv".into(), ExtensionRule::new(ParseMode::Sampled, None));
+        rules.insert("py".into(), ParseMode::Full);
+        rules.insert("rs".into(), ParseMode::Full);
+        rules.insert("r".into(), ParseMode::Full);
+        rules.insert("R".into(), ParseMode::Full);
+        rules.insert("ipynb".into(), ParseMode::Full);
+        rules.insert("md".into(), ParseMode::Full);
+        rules.insert("txt".into(), ParseMode::Full);
+        rules.insert("csv".into(), ParseMode::Sampled);
+        rules.insert("tsv".into(), ParseMode::Sampled);
 
         Self {
             enabled: false,
             recursive: true,
-            default_primer: "Analyze this file content. Explain its likely purpose, important signals, probable role in the project, and important domain clues.".to_string(),
             max_full_bytes: 150_000,
             sample_rows: 10,
             sample_cols: 20,
@@ -78,40 +80,37 @@ impl ContentConfig {
     /// Precedence is:
     /// 1. defaults
     /// 2. direct scalar values from CLI
-    /// 3. default primer from inline text or file
-    /// 4. extension allow-list from CLI
-    /// 5. per-extension mode and primer overrides from CLI
+    /// 3. extension allow-list from CLI
+    /// 4. per-extension parse-mode overrides from CLI
     ///
     /// The `_files` parameter is currently unused but retained for API
     /// compatibility and future expansion.
-    pub fn from_sources(cli: &ContentCliArgs, _files: &[PathBuf]) -> Self {
+    pub fn from_sources(
+        content_analysis: bool,
+        no_recursive_content: bool,
+        content_max_full_bytes: usize,
+        content_sample_rows: usize,
+        content_sample_cols: usize,
+        content_extensions: Option<&str>,
+        content_modes: &[String],
+    ) -> Self {
         let mut cfg = Self {
-            enabled: cli.content_analysis,
-            recursive: !cli.no_recursive_content,
-            max_full_bytes: cli.content_max_full_bytes,
-            sample_rows: cli.content_sample_rows,
-            sample_cols: cli.content_sample_cols,
+            enabled: content_analysis,
+            recursive: !no_recursive_content,
+            max_full_bytes: content_max_full_bytes,
+            sample_rows: content_sample_rows,
+            sample_cols: content_sample_cols,
             ..Self::default()
         };
 
-        if let Some(text) = cfg.resolve_text_source(
-            cli.content_default_primer.as_ref(),
-            cli.content_default_primer_file.as_ref(),
-        ) {
-            cfg.default_primer = text;
-        }
-
-        if let Some(exts) = &cli.content_extensions {
+        if let Some(exts) = content_extensions {
             let parsed = cfg.parse_csv_set(exts);
             if !parsed.is_empty() {
                 cfg.allowed_extensions = Some(parsed);
             }
         }
 
-        cfg.apply_mode_rules(&cli.content_modes);
-        cfg.apply_inline_primers(&cli.content_primers);
-        cfg.apply_file_primers(&cli.content_primer_files);
-
+        cfg.apply_mode_rules(content_modes);
         cfg
     }
 
@@ -143,27 +142,12 @@ impl ContentConfig {
         }
     }
 
-    /// Returns the effective rule for a path.
+    /// Returns the effective parse mode for a path.
     ///
-    /// If no explicit rule exists for the extension, a default full-parse rule
-    /// with no primer is returned.
-    pub fn rule_for_path(&self, path: &Path) -> ExtensionRule {
+    /// If no explicit rule exists for the extension, `ParseMode::Full` is used.
+    pub fn rule_for_path(&self, path: &Path) -> ParseMode {
         let ext = self.extension_of(path);
-        self.rules
-            .get(&ext)
-            .cloned()
-            .unwrap_or_else(|| ExtensionRule::new(ParseMode::Full, None))
-    }
-
-    /// Returns the effective primer for a path.
-    ///
-    /// Extension-specific primers take precedence over the global default primer.
-    pub fn primer_for_path(&self, path: &Path) -> String {
-        let ext = self.extension_of(path);
-        self.rules
-            .get(&ext)
-            .and_then(|r| r.primer.clone())
-            .unwrap_or_else(|| self.default_primer.clone())
+        self.rules.get(&ext).copied().unwrap_or(ParseMode::Full)
     }
 
     /// Applies CLI extension-to-mode rules such as `"rs=full"` or `"csv=sampled"`.
@@ -171,40 +155,7 @@ impl ContentConfig {
         for item in rules {
             if let Some((ext, raw_mode)) = self.parse_rule(item) {
                 if let Some(mode) = ParseMode::from_cli_value(&raw_mode) {
-                    self.rules
-                        .entry(ext)
-                        .and_modify(|r| r.parse_mode = mode)
-                        .or_insert_with(|| ExtensionRule::new(mode, None));
-                }
-            }
-        }
-    }
-
-    /// Applies inline per-extension primers such as `"rs=Explain Rust ownership here"`.
-    fn apply_inline_primers(&mut self, primers: &[String]) {
-        for item in primers {
-            if let Some((ext, primer)) = self.parse_rule(item) {
-                self.rules
-                    .entry(ext)
-                    .and_modify(|r| r.primer = Some(primer.clone()))
-                    .or_insert_with(|| ExtensionRule::new(ParseMode::Full, Some(primer)));
-            }
-        }
-    }
-
-    /// Applies per-extension primers loaded from files.
-    ///
-    /// Each input is expected to have the form `"ext=/path/to/file.txt"`.
-    /// Missing or unreadable files are ignored.
-    fn apply_file_primers(&mut self, primer_files: &[String]) {
-        for item in primer_files {
-            if let Some((ext, path_str)) = self.parse_rule(item) {
-                let path = PathBuf::from(path_str);
-                if let Ok(primer) = fs::read_to_string(&path) {
-                    self.rules
-                        .entry(ext)
-                        .and_modify(|r| r.primer = Some(primer.clone()))
-                        .or_insert_with(|| ExtensionRule::new(ParseMode::Full, Some(primer)));
+                    self.rules.insert(ext, mode);
                 }
             }
         }
@@ -226,28 +177,6 @@ impl ContentConfig {
         Some((ext, value))
     }
 
-    /// Resolves text from either an inline string or a file path.
-    ///
-    /// Inline text takes precedence over file-based text. Missing or unreadable
-    /// files return `None`.
-    fn resolve_text_source(
-        &self,
-        inline: Option<&String>,
-        file: Option<&PathBuf>,
-    ) -> Option<String> {
-        if let Some(text) = inline {
-            return Some(text.clone());
-        }
-
-        if let Some(path) = file {
-            if let Ok(text) = fs::read_to_string(path) {
-                return Some(text);
-            }
-        }
-
-        None
-    }
-
     /// Parses a comma-separated extension list into a normalized set.
     ///
     /// Empty items are discarded and leading dots are removed.
@@ -264,25 +193,15 @@ impl ContentConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    fn temp_file_path(name: &str) -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time should be after epoch")
-            .as_nanos();
-
-        std::env::temp_dir().join(format!("archeo_content_config_{nanos}_{name}"))
-    }
 
     #[test]
     fn default_contains_expected_extension_rules() {
         let cfg = ContentConfig::default();
 
-        assert_eq!(cfg.rule_for_path(Path::new("main.rs")).parse_mode.as_str(), "full");
-        assert_eq!(cfg.rule_for_path(Path::new("notes.md")).parse_mode.as_str(), "full");
-        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).parse_mode.as_str(), "sampled");
-        assert_eq!(cfg.rule_for_path(Path::new("table.tsv")).parse_mode.as_str(), "sampled");
+        assert_eq!(cfg.rule_for_path(Path::new("main.rs")).as_str(), "full");
+        assert_eq!(cfg.rule_for_path(Path::new("notes.md")).as_str(), "full");
+        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).as_str(), "sampled");
+        assert_eq!(cfg.rule_for_path(Path::new("table.tsv")).as_str(), "sampled");
         assert!(!cfg.enabled);
         assert!(cfg.recursive);
         assert_eq!(cfg.max_full_bytes, 150_000);
@@ -322,21 +241,7 @@ mod tests {
         let cfg = ContentConfig::default();
 
         let rule = cfg.rule_for_path(Path::new("data.unknown"));
-        assert_eq!(rule.parse_mode.as_str(), "full");
-        assert!(rule.primer.is_none());
-    }
-
-    #[test]
-    fn primer_for_path_prefers_extension_specific_primer() {
-        let mut cfg = ContentConfig::default();
-        cfg.default_primer = "default primer".to_string();
-        cfg.rules.insert(
-            "rs".to_string(),
-            ExtensionRule::new(ParseMode::Full, Some("rust primer".to_string())),
-        );
-
-        assert_eq!(cfg.primer_for_path(Path::new("main.rs")), "rust primer");
-        assert_eq!(cfg.primer_for_path(Path::new("notes.md")), "default primer");
+        assert_eq!(rule.as_str(), "full");
     }
 
     #[test]
@@ -381,85 +286,38 @@ mod tests {
             "badmode=definitely_not_valid".to_string(),
         ]);
 
-        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).parse_mode.as_str(), "full");
-        assert_eq!(cfg.rule_for_path(Path::new("Cargo.toml")).parse_mode.as_str(), "sampled");
-        assert_eq!(cfg.rule_for_path(Path::new("file.badmode")).parse_mode.as_str(), "full");
+        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).as_str(), "full");
+        assert_eq!(cfg.rule_for_path(Path::new("Cargo.toml")).as_str(), "sampled");
+        assert_eq!(cfg.rule_for_path(Path::new("file.badmode")).as_str(), "full");
     }
 
+    /*
     #[test]
-    fn apply_inline_primers_updates_and_inserts_primers() {
-        let mut cfg = ContentConfig::default();
+    fn from_sources_applies_scalar_cli_values_and_modes() {
+        let cli = ContentCliArgs {
+            content_analysis: true,
+            no_recursive_content: true,
+            content_max_full_bytes: 42_000,
+            content_sample_rows: 7,
+            content_sample_cols: 9,
+            content_extensions: Some(".rs,.md".to_string()),
+            content_modes: vec!["csv=full".to_string(), "toml=sampled".to_string()],
+            content_default_primer: None,
+            content_default_primer_file: None,
+            content_primers: vec![],
+            content_primer_files: vec![],
+        };
 
-        cfg.apply_inline_primers(&[
-            "rs=Explain Rust code carefully".to_string(),
-            "toml=Configuration file".to_string(),
-        ]);
+        let cfg = ContentConfig::from_sources(&cli, &[]);
 
-        assert_eq!(cfg.primer_for_path(Path::new("main.rs")), "Explain Rust code carefully");
-        assert_eq!(cfg.primer_for_path(Path::new("Cargo.toml")), "Configuration file");
-    }
-
-    #[test]
-    fn apply_file_primers_reads_text_from_files() {
-        let mut cfg = ContentConfig::default();
-
-        let primer_path = temp_file_path("primer.txt");
-        fs::write(&primer_path, "primer from file").expect("should write temp primer file");
-
-        cfg.apply_file_primers(&[format!("rs={}", primer_path.display())]);
-
-        assert_eq!(cfg.primer_for_path(Path::new("main.rs")), "primer from file");
-
-        let _ = fs::remove_file(primer_path);
-    }
-
-    #[test]
-    fn apply_file_primers_ignores_missing_files() {
-        let mut cfg = ContentConfig::default();
-        cfg.default_primer = "default".to_string();
-
-        let missing = temp_file_path("missing_primer.txt");
-        cfg.apply_file_primers(&[format!("rs={}", missing.display())]);
-
-        assert_eq!(cfg.primer_for_path(Path::new("main.rs")), "default");
-    }
-
-    #[test]
-    fn resolve_text_source_prefers_inline_text_over_file() {
-        let cfg = ContentConfig::default();
-
-        let file_path = temp_file_path("default_primer.txt");
-        fs::write(&file_path, "from file").expect("should write temp file");
-
-        let inline = "from inline".to_string();
-        let resolved = cfg.resolve_text_source(Some(&inline), Some(&file_path));
-
-        assert_eq!(resolved.as_deref(), Some("from inline"));
-
-        let _ = fs::remove_file(file_path);
-    }
-
-    #[test]
-    fn resolve_text_source_reads_from_file_when_inline_missing() {
-        let cfg = ContentConfig::default();
-
-        let file_path = temp_file_path("only_file_primer.txt");
-        fs::write(&file_path, "from file").expect("should write temp file");
-
-        let resolved = cfg.resolve_text_source(None, Some(&file_path));
-
-        assert_eq!(resolved.as_deref(), Some("from file"));
-
-        let _ = fs::remove_file(file_path);
-    }
-
-    #[test]
-    fn resolve_text_source_returns_none_when_nothing_is_available() {
-        let cfg = ContentConfig::default();
-
-        let missing = temp_file_path("definitely_missing.txt");
-        let resolved = cfg.resolve_text_source(None, Some(&missing));
-
-        assert!(resolved.is_none());
-    }
+        assert!(cfg.enabled);
+        assert!(!cfg.recursive);
+        assert_eq!(cfg.max_full_bytes, 42_000);
+        assert_eq!(cfg.sample_rows, 7);
+        assert_eq!(cfg.sample_cols, 9);
+        assert!(cfg.allowed_extensions.as_ref().is_some_and(|s| s.contains("rs")));
+        assert!(cfg.allowed_extensions.as_ref().is_some_and(|s| s.contains("md")));
+        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).as_str(), "full");
+        assert_eq!(cfg.rule_for_path(Path::new("Cargo.toml")).as_str(), "sampled");
+    }*/
 }

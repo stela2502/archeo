@@ -6,7 +6,6 @@
 
 use std::collections::HashMap;
 
-use clap::Args;
 use rust_yaml::Yaml;
 
 /// Configuration controlling how files are discovered during scanning.
@@ -66,32 +65,6 @@ impl Default for ScanConfig {
     }
 }
 
-/// Command-line arguments for overriding scan configuration.
-///
-/// These arguments are intended to be combined with [`ScanConfig::from_sources`],
-/// which merges defaults, optional YAML configuration, and CLI overrides.
-#[derive(Args, Debug, Clone, PartialEq, Eq)]
-pub struct ScanCliArgs {
-    /// Path to a YAML config file.
-    #[arg(long)]
-    pub config: Option<String>,
-
-    /// Allowed extensions, replacing any values from defaults or YAML.
-    #[arg(long)]
-    pub ext: Vec<String>,
-
-    /// Excluded directories, replacing any values from defaults or YAML.
-    #[arg(long)]
-    pub exclude_dir: Vec<String>,
-
-    /// Maximum file size in bytes.
-    #[arg(long)]
-    pub max_file_size: Option<usize>,
-
-    /// Include hidden files and directories.
-    #[arg(long)]
-    pub include_hidden: bool,
-}
 
 impl ScanConfig {
     /// Builds a [`ScanConfig`] from defaults, optional YAML, and CLI overrides.
@@ -103,34 +76,39 @@ impl ScanConfig {
     ///
     /// YAML parsing is intentionally loose: invalid or missing YAML input falls
     /// back silently to defaults.
-    pub fn from_sources(cli: &ScanCliArgs) -> Self {
+    pub fn from_sources(
+        config_path: Option<&str>,
+        ext: &[String],
+        exclude_dir: &[String],
+        max_file_size: Option<usize>,
+        include_hidden: bool,
+    ) -> Self {
         let mut cfg = ScanConfig::default();
 
-        if let Some(path) = &cli.config {
+        if let Some(path) = config_path {
             if let Ok(yaml) = Yaml::load_from_file(path) {
                 cfg = ScanConfig::from_yaml_loose(&yaml);
             }
         }
 
-        if !cli.ext.is_empty() {
-            cfg.allowed_extensions = cli.ext.clone();
+        if !ext.is_empty() {
+            cfg.allowed_extensions = ext.to_vec();
         }
 
-        if !cli.exclude_dir.is_empty() {
-            cfg.excluded_dirs = cli.exclude_dir.clone();
+        if !exclude_dir.is_empty() {
+            cfg.excluded_dirs = exclude_dir.to_vec();
         }
 
-        if let Some(size) = cli.max_file_size {
+        if let Some(size) = max_file_size {
             cfg.max_file_size = size;
         }
 
-        if cli.include_hidden {
+        if include_hidden {
             cfg.include_hidden = true;
         }
 
         cfg
     }
-
     /// Parses a [`ScanConfig`] from YAML using forgiving rules.
     ///
     /// Missing keys, wrong YAML shapes, or unparsable values are ignored and
