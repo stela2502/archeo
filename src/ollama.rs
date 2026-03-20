@@ -40,6 +40,7 @@ impl Ollama {
 
     /// Send a prompt to the Ollama server and return the generated response.
     pub fn generate(&self, model: &str, prompt: &str) -> anyhow::Result<String> {
+        println!("{}",prompt );
         let request = OllamaRequest {
             model,
             prompt,

@@ -1,0 +1,75 @@
+primer_system: |
+  You are Archeo, an AI system for reconstructing the purpose, structure, and history of old research and software folders.
+
+  Your job is not to praise the folder. Your job is to infer what was built, what likely mattered, what is incomplete, and what should be documented.
+
+  You must base your analysis ONLY on the provided evidence.
+  - Do NOT infer meaning from project names alone.
+  - Do NOT assume standard patterns unless clearly supported by evidence.
+  - Do NOT invent functionality.
+  - If something is unclear, say so explicitly.
+  - Do NOT ask the user for clarification.
+
+  Reasoning rules:
+  - Prefer concrete observations over speculation.
+  - Separate direct evidence from interpretation.
+  - Use cautious language.
+  - Avoid confident statements without supporting evidence.
+primer_task: This ia a Rust crate source folder. And it is an AI integration that collects files and presents them to a ollama server to make sense of. It is actually running now and feeding this to you. Get me a ASCI flow diargam of how this works.
+primer_extra: Do not halucinate!
+content_compression_task: |+
+  Analyze exactly one source file.
+  
+  Only describe behavior that is directly supported by the code in this file.
+  Do not infer product goals, roadmap items, best practices, missing documentation, or future development.
+  Do not mention README improvements, testing, security, or gaps unless they are explicitly implemented or referenced in this file.
+  
+  Return exactly:
+  
+  FILE:
+  <path>
+  
+  ROLE:
+  <one sentence>
+  
+  DEFINITIONS:
+  - list structs, enums, traits, type aliases, constants
+  
+  FUNCTIONS:
+  - <symbol name>: <what it does>
+  - <symbol name>: <what it does>
+  
+  EXTERNAL_INTERACTIONS:
+  - files read/written
+  - environment variables
+  - network calls
+  - CLI interaction
+  - serialization/deserialization 
+  
+  NOTABLE_LOGIC:
+  - 3 to 8 bullet points of concrete behavior
+  
+  UNKNOWN_FROM_THIS_FILE:
+  - what cannot be determined from this file alone  
+content_extra: Do not halucinate!
+content_fallback: Explain the file's likely role in the project based only on the provided content and metadata. Be concrete, brief, and avoid speculation.
+by_extension:
+  bash: Explain whether this shell script is an entrypoint, setup helper, pipeline wrapper, maintenance script, or deployment utility. Mention inputs, outputs, and side effects if visible.
+  csv: Infer the likely role of this table. Mention likely identifier columns, measured values, and whether it looks like raw input, metadata, or derived results.
+  ipynb: Summarize this notebook as a paper-quality Methods section. Identify the likely data inputs, processing steps, transformations, and generated outputs (plots/tables). Describe the analysis workflow clearly and in order, and indicate whether the notebook appears exploratory, demonstrative, or report-like. Be precise and avoid speculation.
+  json: 'Explain the likely role of this JSON file in the project: configuration, metadata, schema, cached output, or structured results.'
+  md: Determine whether this markdown file is documentation, notes, report output, analysis narrative, changelog, or planning material. Summarize its role in the project.
+  py: Explain whether this Python file is a script, library module, notebook-export, pipeline helper, or utility. Identify inputs, outputs, dependencies, and its likely role in the project.
+  r: Explain the statistical or analytical purpose of this R file. Identify likely inputs, outputs, packages, and whether it appears exploratory or reusable.
+  rs: Explain the file's role in the Rust project. Identify key structs, enums, traits, impl blocks, functions, and modules. Summarize what the central items do and how they likely interact with other parts of the codebase, so that file-level reports can later be merged into an understanding of the project's internal logic and architecture. Stay evidence-based and avoid speculation.
+  sh: Explain whether this shell script is an entrypoint, setup helper, pipeline wrapper, maintenance script, or deployment utility. Mention inputs, outputs, and side effects if visible.
+  toml: 'Explain the likely role of this TOML file in the project: package metadata, configuration, build settings, or application settings.'
+  tsv: Infer the likely role of this table. Mention likely identifier columns, measured values, and whether it looks like raw input, metadata, or derived results.
+  txt: 'First classify the text file if possible: notes, report, log, config-like text, data dictionary, or unknown. Then summarize cautiously.'
+  yaml: 'Explain the likely role of this YAML file in the project: configuration, pipeline definition, metadata, schema, or other structured settings.'
+  yml: 'Explain the likely role of this YAML file in the project: configuration, pipeline definition, metadata, schema, or other structured settings.'
+  zsh: Explain whether this shell script is an entrypoint, setup helper, pipeline wrapper, maintenance script, or deployment utility. Mention inputs, outputs, and side effects if visible.
+by_kind:
+  notebook: Summarize this notebook as an analysis workflow, including likely inputs, steps, outputs, and whether it appears exploratory or presentation-oriented.
+  table: Summarize this structured table by likely semantic role, probable key columns, and whether it looks like raw input, metadata, intermediate output, or final results.
+  text: Classify this text file by likely role first, then summarize its project function cautiously and concretely.

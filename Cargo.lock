@@ -60,7 +60,7 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "archeo"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1012,6 +1012,7 @@ dependencies = [
 [[package]]
 name = "rust_yaml"
 version = "0.1.0"
+source = "git+https://github.com/stela2502/rust_yaml#5d40fd9300165cc556de0c6231e041a326c05e10"
 
 [[package]]
 name = "rustc-hash"
