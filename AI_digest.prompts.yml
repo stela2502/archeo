@@ -15,10 +15,10 @@ primer_system: |
   - Separate direct evidence from interpretation.
   - Use cautious language.
   - Avoid confident statements without supporting evidence.
-primer_task: Archeo is a Rust CLI that scans a project, filters relevant files, converts them into structured descriptors, builds prompt-driven analyses per file, sends them to an Ollama LLM, and aggregates the results into a final Markdown report describing the project’s structure and purpose.
+primer_task: This folder contains an bioinformatic analysis of a dataset. Describe which dataset is analyzed and which methods were used. If possible also idetify which outfiles were created and where e.g. statistical results might be stoired.
 primer_extra: null
 file_analysis_system: null
-file_analysis_task: The file you get is part of the archeo tool code base. The tool is about analyzing text files and annotating there general usage. In this specific case we want to understand the Rust code and understand the whole project. Be really specific about the single files so that we can picture the internal logic of this Rust crate
+file_analysis_task: The file you get is a bioinformatic analysis of ONT data. In short TP53 transcripts were enriched and sequenced using oxford nanpopre technology. The data was processed using the wf-singlecells piplines also calling mutations and thsi analysi here is trying to find out if that suceeded or failed. Write a materials section type of summary for this file. State wich libraries are used and which analysis steps are performed.
 file_analysis_extra: null
 content_compression_task: |
   You are converting file-level analysis into a compact index.
@@ -51,9 +51,9 @@ by_extension:
   md: Determine whether this markdown file is documentation, notes, report output, analysis narrative, changelog, or planning material. Summarize its role in the project.
   py: Explain whether this Python file is a script, library module, notebook-export, pipeline helper, or utility. Identify inputs, outputs, dependencies, and its likely role in the project.
   r: Explain the statistical or analytical purpose of this R file. Identify likely inputs, outputs, packages, and whether it appears exploratory or reusable.
-  rs: You are analyzing a Rust source file. Explain the file’s role in the crate, then list only the most important types and public functions with a short purpose for each. Ignore minor helpers and keep the output concise.
+  rs: Read through the code and identify rust strcts and functions. Identify what these functions do and write a one sentence summary for each function. Be precise and do not halucinate!
   sh: Explain whether this shell script is an entrypoint, setup helper, pipeline wrapper, maintenance script, or deployment utility. Mention inputs, outputs, and side effects if visible.
-  toml: 'Analyze this TOML file in a Rust project: identify if it is Cargo.toml or another config, then explain its concrete role, key sections, and how it affects dependencies, build, or runtime behavior—avoid generic descriptions.'
+  toml: 'Explain the likely role of this TOML file in the project: package metadata, configuration, build settings, or application settings.'
   tsv: Infer the likely role of this table. Mention likely identifier columns, measured values, and whether it looks like raw input, metadata, or derived results.
   txt: 'First classify the text file if possible: notes, report, log, config-like text, data dictionary, or unknown. Then summarize cautiously.'
   yaml: 'Explain the likely role of this YAML file in the project: configuration, pipeline definition, metadata, schema, or other structured settings.'
