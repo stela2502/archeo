@@ -5,7 +5,7 @@
 
 # 🏺 Archeo
 
-**Reconstruct what the hell this project is**
+**AI-assisted analysis and structured understanding of project directories.**
 
 Archeo is a command-line tool that analyzes a codebase or data folder
 and produces a structured, AI-generated summary of what the project
