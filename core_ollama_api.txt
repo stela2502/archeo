@@ -1,0 +1,43 @@
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_file(&self, path: &std::path::Path, ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<archeo::content_analysis::analyzer::ContentAnalysisReport>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_files(&self, files: &[std::path::PathBuf], ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<alloc::vec::Vec<archeo::content_analysis::analyzer::ContentAnalysisReport>>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::compress_reports_with_ai(reports: &[archeo::content_analysis::analyzer::ContentAnalysisReport], ollama: &archeo::ollama::Ollama, model: &str, prompt: &str) -> anyhow::Result<alloc::string::String>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_file(&self, path: &std::path::Path, ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<archeo::content_analysis::analyzer::ContentAnalysisReport>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_files(&self, files: &[std::path::PathBuf], ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<alloc::vec::Vec<archeo::content_analysis::analyzer::ContentAnalysisReport>>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::compress_reports_with_ai(reports: &[archeo::content_analysis::analyzer::ContentAnalysisReport], ollama: &archeo::ollama::Ollama, model: &str, prompt: &str) -> anyhow::Result<alloc::string::String>
+pub mod archeo::ollama
+pub struct archeo::ollama::Ollama
+impl archeo::ollama::Ollama
+pub fn archeo::ollama::Ollama::generate(&self, model: &str, prompt: &str) -> anyhow::Result<alloc::string::String>
+pub fn archeo::ollama::Ollama::new<S: core::convert::Into<alloc::string::String>>(base_url: S) -> Self
+pub fn archeo::ollama::Ollama::clone(&self) -> archeo::ollama::Ollama
+pub fn archeo::ollama::Ollama::default() -> Self
+pub fn archeo::ollama::Ollama::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl !core::panic::unwind_safe::RefUnwindSafe for archeo::ollama::Ollama
+impl !core::panic::unwind_safe::UnwindSafe for archeo::ollama::Ollama
+impl<T, U> core::convert::Into<U> for archeo::ollama::Ollama where U: core::convert::From<T>
+pub fn archeo::ollama::Ollama::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for archeo::ollama::Ollama where U: core::convert::Into<T>
+pub type archeo::ollama::Ollama::Error = core::convert::Infallible
+pub fn archeo::ollama::Ollama::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for archeo::ollama::Ollama where U: core::convert::TryFrom<T>
+pub type archeo::ollama::Ollama::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn archeo::ollama::Ollama::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for archeo::ollama::Ollama where T: core::clone::Clone
+pub type archeo::ollama::Ollama::Owned = T
+pub fn archeo::ollama::Ollama::clone_into(&self, target: &mut T)
+pub fn archeo::ollama::Ollama::to_owned(&self) -> T
+impl<T> core::any::Any for archeo::ollama::Ollama where T: 'static + ?core::marker::Sized
+pub fn archeo::ollama::Ollama::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for archeo::ollama::Ollama where T: ?core::marker::Sized
+pub fn archeo::ollama::Ollama::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for archeo::ollama::Ollama where T: ?core::marker::Sized
+pub fn archeo::ollama::Ollama::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for archeo::ollama::Ollama where T: core::clone::Clone
+pub unsafe fn archeo::ollama::Ollama::clone_to_uninit(&self, dest: *mut u8)
+impl<T> core::convert::From<T> for archeo::ollama::Ollama
+pub fn archeo::ollama::Ollama::from(t: T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for archeo::ollama::Ollama where T: ?core::marker::Sized
+pub fn archeo::ollama::Ollama::and<P, B, E>(self, other: P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn archeo::ollama::Ollama::or<P, B, E>(self, other: P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for archeo::ollama::Ollama
+impl<T> tracing::instrument::WithSubscriber for archeo::ollama::Ollama

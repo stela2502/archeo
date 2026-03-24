@@ -1,0 +1,57 @@
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_file(&self, path: &std::path::Path, ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<archeo::content_analysis::analyzer::ContentAnalysisReport>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_files(&self, files: &[std::path::PathBuf], ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<alloc::vec::Vec<archeo::content_analysis::analyzer::ContentAnalysisReport>>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::combined_file_primer(&self, descriptor: &archeo::content_analysis::descriptor::ContentDescriptor, prompts: &archeo::prompt_defaults::PromptDefaults) -> alloc::string::String
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_file(&self, path: &std::path::Path, ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<archeo::content_analysis::analyzer::ContentAnalysisReport>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::analyze_files(&self, files: &[std::path::PathBuf], ollama: &archeo::ollama::Ollama, model: &str, prompts: &archeo::prompt_defaults::PromptDefaults) -> anyhow::Result<alloc::vec::Vec<archeo::content_analysis::analyzer::ContentAnalysisReport>>
+pub fn archeo::content_analysis::analyzer::ContentAnalyzer::combined_file_primer(&self, descriptor: &archeo::content_analysis::descriptor::ContentDescriptor, prompts: &archeo::prompt_defaults::PromptDefaults) -> alloc::string::String
+pub struct archeo::prompt_defaults::PromptDefaults
+pub archeo::prompt_defaults::PromptDefaults::catalog: archeo::prompt_defaults::PromptCatalog
+pub archeo::prompt_defaults::PromptDefaults::path: std::path::PathBuf
+pub archeo::prompt_defaults::PromptDefaults::was_created: bool
+impl archeo::prompt_defaults::PromptDefaults
+pub fn archeo::prompt_defaults::PromptDefaults::apply_cli_overrides(&mut self, primer_task: core::option::Option<&str>, primer_extra: core::option::Option<&str>, file_analysis_task: core::option::Option<&str>, file_analysis_extra: core::option::Option<&str>, content_compression_task: core::option::Option<&str>) -> bool
+pub fn archeo::prompt_defaults::PromptDefaults::apply_content_primer_rules(&mut self, rules: &[alloc::string::String]) -> bool
+pub fn archeo::prompt_defaults::PromptDefaults::apply_extra(base: &mut alloc::string::String, extra: core::option::Option<&str>)
+pub fn archeo::prompt_defaults::PromptDefaults::apply_kind_primer_rules(&mut self, rules: &[alloc::string::String]) -> bool
+pub fn archeo::prompt_defaults::PromptDefaults::content_compression_task(&self, override_value: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::content_prompt_for(&self, desc: &archeo::content_analysis::descriptor::ContentDescriptor) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::default_catalog() -> archeo::prompt_defaults::PromptCatalog
+pub fn archeo::prompt_defaults::PromptDefaults::default_global_prompt_file() -> anyhow::Result<std::path::PathBuf>
+pub fn archeo::prompt_defaults::PromptDefaults::file_analysis_system(&self, override_value: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::file_analysis_task(&self, override_value: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::new(path: core::option::Option<&str>) -> anyhow::Result<Self>
+pub fn archeo::prompt_defaults::PromptDefaults::primer_system(&self, override_value: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::primer_task(&self, override_value: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::render_descriptor_prompt(&self, desc: &archeo::content_analysis::descriptor::ContentDescriptor, file_analysis_system_override: core::option::Option<&str>, file_analysis_task_override: core::option::Option<&str>, file_analysis_extra_override: core::option::Option<&str>) -> alloc::string::String
+pub fn archeo::prompt_defaults::PromptDefaults::validate_internal_coverage(&self) -> anyhow::Result<()>
+pub fn archeo::prompt_defaults::PromptDefaults::write_default_catalog<P: core::convert::AsRef<std::path::Path>>(path: P) -> anyhow::Result<()>
+pub fn archeo::prompt_defaults::PromptDefaults::write_used_catalog<P: core::convert::AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()>
+pub fn archeo::prompt_defaults::PromptDefaults::clone(&self) -> archeo::prompt_defaults::PromptDefaults
+pub fn archeo::prompt_defaults::PromptDefaults::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T, U> core::convert::Into<U> for archeo::prompt_defaults::PromptDefaults where U: core::convert::From<T>
+pub fn archeo::prompt_defaults::PromptDefaults::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for archeo::prompt_defaults::PromptDefaults where U: core::convert::Into<T>
+pub type archeo::prompt_defaults::PromptDefaults::Error = core::convert::Infallible
+pub fn archeo::prompt_defaults::PromptDefaults::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for archeo::prompt_defaults::PromptDefaults where U: core::convert::TryFrom<T>
+pub type archeo::prompt_defaults::PromptDefaults::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn archeo::prompt_defaults::PromptDefaults::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for archeo::prompt_defaults::PromptDefaults where T: core::clone::Clone
+pub type archeo::prompt_defaults::PromptDefaults::Owned = T
+pub fn archeo::prompt_defaults::PromptDefaults::clone_into(&self, target: &mut T)
+pub fn archeo::prompt_defaults::PromptDefaults::to_owned(&self) -> T
+impl<T> core::any::Any for archeo::prompt_defaults::PromptDefaults where T: 'static + ?core::marker::Sized
+pub fn archeo::prompt_defaults::PromptDefaults::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for archeo::prompt_defaults::PromptDefaults where T: ?core::marker::Sized
+pub fn archeo::prompt_defaults::PromptDefaults::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for archeo::prompt_defaults::PromptDefaults where T: ?core::marker::Sized
+pub fn archeo::prompt_defaults::PromptDefaults::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for archeo::prompt_defaults::PromptDefaults where T: core::clone::Clone
+pub unsafe fn archeo::prompt_defaults::PromptDefaults::clone_to_uninit(&self, dest: *mut u8)
+impl<T> core::convert::From<T> for archeo::prompt_defaults::PromptDefaults
+pub fn archeo::prompt_defaults::PromptDefaults::from(t: T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for archeo::prompt_defaults::PromptDefaults where T: ?core::marker::Sized
+pub fn archeo::prompt_defaults::PromptDefaults::and<P, B, E>(self, other: P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn archeo::prompt_defaults::PromptDefaults::or<P, B, E>(self, other: P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for archeo::prompt_defaults::PromptDefaults
+impl<T> tracing::instrument::WithSubscriber for archeo::prompt_defaults::PromptDefaults

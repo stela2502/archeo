@@ -97,6 +97,37 @@ struct Args {
     #[arg(long, value_name = "TEXT")]
     content_compression_task: Option<String>,
 
+    /// Jupyter notebooks.
+    ///
+    /// This prompt is used in the first notebook AI pass. It should help the
+    /// model identify logical section boundaries, likely duplicate areas,
+    /// missing links between sections, and candidate code/result groupings for
+    /// later deeper analysis.
+    ///
+    /// Typical goals for this prompt include:
+    /// - finding logical connections between notebook areas,
+    /// - marking likely duplicate or repeated analyses,
+    /// - suggesting additional related cells that belong together,
+    /// - and defining boundaries for the second-pass section analysis.
+    ///
+    /// Example:
+    ///   --notebook-boundary-task "Inspect the markdown and notebook flow, find logical analysis sections, detect repeated work, and suggest which code and result cells belong together."
+    #[arg(long, value_name = "TEXT")]
+    notebook_boundary_task: Option<String>,
+
+    /// Override the task used to summarize one logical notebook section made of
+    /// code and retained results.
+    ///
+    /// This prompt is used in the second notebook AI pass after notebook
+    /// sections have been defined. It should summarize:
+    /// 1. the overall idea or analytical step implemented in the code
+    /// 2. the core results or findings shown by the retained outputs
+    ///
+    /// Example:
+    ///   --notebook-section-task "Summarize this notebook section by explaining the main analytical idea implemented in the code and the key results shown in the retained outputs."
+    #[arg(long, value_name = "TEXT")]
+    notebook_section_task: Option<String>,
+
     /// Fallback content prompt used when no extension-specific or kind-specific
     /// prompt matches a file.
     ///
@@ -254,6 +285,7 @@ struct Args {
     /// By default, hidden paths may be skipped.
     #[arg(long)]
     include_hidden: bool,
+
 }
 
 
