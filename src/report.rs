@@ -67,11 +67,10 @@ impl Report {
     pub fn write<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
         let path = path.as_ref();
 
-        if let Some(parent) = path.parent() {
-            if !parent.exists() {
+        if let Some(parent) = path.parent()
+            && !parent.exists() {
                 fs::create_dir_all(parent)?;
             }
-        }
 
         fs::write(path, self.to_string())?;
         Ok(())
@@ -131,20 +130,20 @@ impl fmt::Display for Report {
         writeln!(f, "## Content Analysis Detailed Per File")?;
 
         for report in &self.ai_single_files {
-            writeln!(f, "{}", format!("### {}\n\n", report.path.display()))?;
+            writeln!(f, "### {}\n\n", report.path.display())?;
 
             if !report.warnings.is_empty() {
                 writeln!(f, "- Warnings:\n")?;
                 for w in &report.warnings {
-                    writeln!(f, "{}", format!("  - {}\n", w))?;
+                    writeln!(f, "  - {}\n", w)?;
                 }
             }
 
             if let Some(response) = &report.ai_response {
                 writeln!(f, "{}", response)?;
-                writeln!(f, "{}", "\n")?;
+                writeln!(f, "\n")?;
             } else {
-                writeln!(f, "{}", "\n_No AI interpretation._\n\n")?;
+                writeln!(f, "\n_No AI interpretation._\n\n")?;
             }
         }
 

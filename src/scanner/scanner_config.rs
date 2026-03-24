@@ -85,11 +85,10 @@ impl ScanConfig {
     ) -> Self {
         let mut cfg = ScanConfig::default();
 
-        if let Some(path) = config_path {
-            if let Ok(yaml) = Yaml::load_from_file(path) {
+        if let Some(path) = config_path
+            && let Ok(yaml) = Yaml::load_from_file(path) {
                 cfg = ScanConfig::from_yaml_loose(&yaml);
             }
-        }
 
         if !ext.is_empty() {
             cfg.allowed_extensions = ext.to_vec();
@@ -141,11 +140,10 @@ impl ScanConfig {
             }
         }
 
-        if let Some(Yaml::Value(s)) = map.get("max_file_size") {
-            if let Ok(v) = s.parse::<usize>() {
+        if let Some(Yaml::Value(s)) = map.get("max_file_size")
+            && let Ok(v) = s.parse::<usize>() {
                 cfg.max_file_size = v;
             }
-        }
 
         if let Some(Yaml::Value(s)) = map.get("include_hidden") {
             cfg.include_hidden = s == "true";

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::content_analysis::{ContentConfig, ParseMode};
 
-use strum::IntoEnumIterator;
+//use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 /// High-level classification of a file's content.

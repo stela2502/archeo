@@ -191,7 +191,7 @@ impl PromptDefaults {
     }
     /// parse command line option "content_primers(s)" as defined in main
     pub fn apply_content_primer_rules(&mut self, rules: &[String]) -> bool {
-        let changed = rules.len() > 0 ;
+        let changed = !rules.is_empty() ;
 
         for rule in rules {
             if let Some((ext, text)) = Self::parse_prompt_rule(rule) {
@@ -203,7 +203,7 @@ impl PromptDefaults {
 
     /// parse command line option "kind_primer(s)" as defined in main
     pub fn apply_kind_primer_rules(&mut self, rules: &[String]) -> bool {
-        let changed = rules.len() > 0 ;
+        let changed = !rules.is_empty() ;
         for rule in rules {
             if let Some((kind, text)) = Self::parse_prompt_rule(rule) {
                 self.catalog.by_kind.insert(kind, text);
