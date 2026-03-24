@@ -165,47 +165,30 @@ impl PromptDefaults {
     ) -> bool {
         let mut changed = false;
 
-        if let Some(task) = primer_task.map(str::trim).filter(|s| !s.is_empty()) {
-            if self.catalog.primer_task.as_deref() != Some(task) {
-                self.catalog.primer_task = Some(task.to_string());
-                changed = true;
-            }
-        }
-
-        if let Some(extra) = primer_extra.map(str::trim).filter(|s| !s.is_empty()) {
-            if self.catalog.primer_extra.as_deref() != Some(extra) {
-                self.catalog.primer_extra = Some(extra.to_string());
-                changed = true;
-            }
-        }
-
-        if let Some(task) = file_analysis_task.map(str::trim).filter(|s| !s.is_empty()) {
-            if self.catalog.file_analysis_task.as_deref() != Some(task) {
-                self.catalog.file_analysis_task = Some(task.to_string());
-                changed = true;
-            }
-        }
-
-        if let Some(extra) = file_analysis_extra.map(str::trim).filter(|s| !s.is_empty()) {
-            if self.catalog.file_analysis_extra.as_deref() != Some(extra) {
-                self.catalog.file_analysis_extra = Some(extra.to_string());
-                changed = true;
-            }
-        }
-
-        if let Some(task) = content_compression_task
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-        {
-            if self.catalog.content_compression_task.as_deref() != Some(task) {
-                self.catalog.content_compression_task = Some(task.to_string());
-                changed = true;
-            }
-        }
+        changed |= Self::apply_optional_override(&mut self.catalog.primer_task, primer_task);
+        changed |= Self::apply_optional_override(&mut self.catalog.primer_extra, primer_extra);
+        changed |= Self::apply_optional_override(&mut self.catalog.file_analysis_task, file_analysis_task);
+        changed |= Self::apply_optional_override(&mut self.catalog.file_analysis_extra, file_analysis_extra);
+        changed |= Self::apply_optional_override(
+            &mut self.catalog.content_compression_task,
+            content_compression_task,
+        );
 
         changed
     }
 
+    fn apply_optional_override(slot: &mut Option<String>, incoming: Option<&str>) -> bool {
+        let Some(value) = incoming.map(str::trim).filter(|s| !s.is_empty()) else {
+            return false;
+        };
+    
+        if slot.as_deref() == Some(value) {
+            return false;
+        }
+    
+        *slot = Some(value.to_string());
+        true
+    }
     /// parse command line option "content_primers(s)" as defined in main
     pub fn apply_content_primer_rules(&mut self, rules: &[String]) -> bool {
         let changed = rules.len() > 0 ;

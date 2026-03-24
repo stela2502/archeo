@@ -153,10 +153,9 @@ impl ContentConfig {
     /// Applies CLI extension-to-mode rules such as `"rs=full"` or `"csv=sampled"`.
     fn apply_mode_rules(&mut self, rules: &[String]) {
         for item in rules {
-            if let Some((ext, raw_mode)) = self.parse_rule(item) {
-                if let Some(mode) = ParseMode::from_cli_value(&raw_mode) {
+            if let Some((ext, raw_mode)) = self.parse_rule(item)  &&
+                let Some(mode) = ParseMode::from_cli_value(&raw_mode) {
                     self.rules.insert(ext, mode);
-                }
             }
         }
     }
