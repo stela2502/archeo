@@ -295,6 +295,38 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     println!("🔍 Archeo analyzing: {}", args.path);
 
+    let ollama = Ollama::default();
+
+    
+    let installed_models = match ollama.list_models() {
+        Ok(models) => models,
+        Err(err) => {
+            anyhow::bail!(
+                "Could not connect to the Ollama server.\n\
+                 Expected API endpoint: {}\n\
+                 Error: {err}\n\
+                 Please make sure Ollama is running and reachable.",
+                ollama.base_url()
+            );
+        }
+    };
+
+    if installed_models.is_empty() {
+        anyhow::bail!(
+            "Ollama is reachable at {}, but no models are installed.",
+            ollama.base_url()
+        );
+    }
+
+    if !installed_models.iter().any(|m| m == &args.model) {
+        anyhow::bail!(
+            "Requested Ollama model `{}` is not installed.\n\
+             Available models: {}",
+            args.model,
+            installed_models.join(", ")
+        );
+    }
+
     let scan_config = ScanConfig::from_sources(
         args.config.as_deref(),
         &args.ext,
@@ -351,7 +383,6 @@ fn main() -> anyhow::Result<()> {
     );
 
 
-    let ollama = Ollama::default();
 
     // Per-file content analysis
     let content_config = ContentConfig::from_sources(

@@ -5,6 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::content_analysis::{ContentConfig, ParseMode};
+use crate::content_analysis::notebooks::notebook::{Notebook, NotebookParserConfig};
 
 //use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -212,24 +213,11 @@ impl ContentDescriptor {
     /// Behavior then follows the same `Full` vs `Sampled` rules as text files.
     fn from_notebook(path: &Path, config: &ContentConfig, parse_mode: ParseMode) -> Result<Self> {
         let file_size = fs::metadata(path)?.len() as usize;
-        let raw = fs::read_to_string(path)
-            .with_context(|| format!("failed to read notebook {}", path.display()))?;
-        let json: Value = serde_json::from_str(&raw)
-            .with_context(|| format!("invalid notebook json {}", path.display()))?;
 
-        let mut rendered = String::new();
+        let notebook = Notebook::from_file(path, NotebookParserConfig::default())
+            .with_context(|| format!("failed to parse notebook {}", path.display()))?;
 
-        if let Some(cells) = json.get("cells").and_then(|v| v.as_array()) {
-            for (idx, cell) in cells.iter().enumerate() {
-                let cell_type = cell.get("cell_type").and_then(|v| v.as_str()).unwrap_or("unknown");
-                let source = Self::render_ipynb_source(cell.get("source"));
-
-                rendered.push_str(&format!("## Cell {}\n", idx + 1));
-                rendered.push_str(&format!("Type: {}\n\n", cell_type));
-                rendered.push_str(&source);
-                rendered.push_str("\n\n");
-            }
-        }
+        let rendered = format!("{notebook}");
 
         let (content, is_truncated, is_sample) = match parse_mode {
             ParseMode::Full => {
