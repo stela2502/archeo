@@ -150,7 +150,7 @@ impl ContentAnalyzer {
             "\n=== FILE PRIMER [{}] ===\n{}\n=======================\n",
             descriptor.path.display(),
             primer
-        );    
+        );
         let prompt = self.build_prompt(&descriptor, prompts);
 
         let ai_response = ollama
@@ -201,11 +201,7 @@ impl ContentAnalyzer {
     /// Builds the final prompt sent to Ollama for a single descriptor.
     ///
     /// The prompt is fully driven by [`PromptDefaults`].
-    fn build_prompt(
-        &self,
-        descriptor: &ContentDescriptor,
-        prompts: &PromptDefaults,
-    ) -> String {
+    fn build_prompt(&self, descriptor: &ContentDescriptor, prompts: &PromptDefaults) -> String {
         prompts.render_descriptor_prompt(descriptor, None, None, None)
     }
 
@@ -324,10 +320,7 @@ mod tests {
     #[test]
     fn render_detailed_summary_includes_warnings_as_bullets() {
         let mut report = base_report();
-        report.warnings = vec![
-            "first warning".to_string(),
-            "second warning".to_string(),
-        ];
+        report.warnings = vec!["first warning".to_string(), "second warning".to_string()];
 
         let text = ContentAnalyzer::render_detailed_summary(&[report]);
 

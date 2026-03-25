@@ -5,9 +5,8 @@ pub mod cli;
 pub mod config;
 pub mod descriptor;
 pub mod extension_rule;
-pub mod parse_mode;
 pub mod notebooks;
-
+pub mod parse_mode;
 
 pub use analyzer::{ContentAnalysisReport, ContentAnalyzer};
 pub use cli::ContentCliArgs;

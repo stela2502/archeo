@@ -125,7 +125,10 @@ impl PromptDefaults {
                 .context("Failed to serialize default prompt catalog")?;
 
             fs::write(&path, yaml).with_context(|| {
-                format!("Failed to write default prompt catalog to {}", path.display())
+                format!(
+                    "Failed to write default prompt catalog to {}",
+                    path.display()
+                )
             })?;
 
             true
@@ -167,8 +170,12 @@ impl PromptDefaults {
 
         changed |= Self::apply_optional_override(&mut self.catalog.primer_task, primer_task);
         changed |= Self::apply_optional_override(&mut self.catalog.primer_extra, primer_extra);
-        changed |= Self::apply_optional_override(&mut self.catalog.file_analysis_task, file_analysis_task);
-        changed |= Self::apply_optional_override(&mut self.catalog.file_analysis_extra, file_analysis_extra);
+        changed |=
+            Self::apply_optional_override(&mut self.catalog.file_analysis_task, file_analysis_task);
+        changed |= Self::apply_optional_override(
+            &mut self.catalog.file_analysis_extra,
+            file_analysis_extra,
+        );
         changed |= Self::apply_optional_override(
             &mut self.catalog.content_compression_task,
             content_compression_task,
@@ -181,17 +188,17 @@ impl PromptDefaults {
         let Some(value) = incoming.map(str::trim).filter(|s| !s.is_empty()) else {
             return false;
         };
-    
+
         if slot.as_deref() == Some(value) {
             return false;
         }
-    
+
         *slot = Some(value.to_string());
         true
     }
     /// parse command line option "content_primers(s)" as defined in main
     pub fn apply_content_primer_rules(&mut self, rules: &[String]) -> bool {
-        let changed = !rules.is_empty() ;
+        let changed = !rules.is_empty();
 
         for rule in rules {
             if let Some((ext, text)) = Self::parse_prompt_rule(rule) {
@@ -203,7 +210,7 @@ impl PromptDefaults {
 
     /// parse command line option "kind_primer(s)" as defined in main
     pub fn apply_kind_primer_rules(&mut self, rules: &[String]) -> bool {
-        let changed = !rules.is_empty() ;
+        let changed = !rules.is_empty();
         for rule in rules {
             if let Some((kind, text)) = Self::parse_prompt_rule(rule) {
                 self.catalog.by_kind.insert(kind, text);
@@ -211,7 +218,6 @@ impl PromptDefaults {
         }
         changed
     }
-
 
     fn parse_prompt_rule(input: &str) -> Option<(String, String)> {
         let (left, right) = input.split_once('=')?;
@@ -686,8 +692,12 @@ impl PromptDefaults {
         let yaml = serde_yaml::to_string(&self.catalog)
             .context("Failed to serialize active prompt catalog")?;
 
-        fs::write(path, yaml)
-            .with_context(|| format!("Failed to write active prompt catalog to {}", path.display()))
+        fs::write(path, yaml).with_context(|| {
+            format!(
+                "Failed to write active prompt catalog to {}",
+                path.display()
+            )
+        })
     }
 
     /// Write the built-in default catalog to `path` as YAML.
@@ -703,8 +713,12 @@ impl PromptDefaults {
         let yaml = serde_yaml::to_string(&Self::default_catalog())
             .context("Failed to serialize default prompt catalog")?;
 
-        fs::write(path, yaml)
-            .with_context(|| format!("Failed to write default prompt catalog to {}", path.display()))
+        fs::write(path, yaml).with_context(|| {
+            format!(
+                "Failed to write default prompt catalog to {}",
+                path.display()
+            )
+        })
     }
 
     /// Append additional free-form instructions to an existing prompt string.
@@ -873,7 +887,10 @@ mod tests {
         );
 
         assert!(changed);
-        assert_eq!(defaults.catalog.primer_task.as_deref(), Some("new primer task"));
+        assert_eq!(
+            defaults.catalog.primer_task.as_deref(),
+            Some("new primer task")
+        );
         assert_eq!(
             defaults.catalog.file_analysis_task.as_deref(),
             Some("new file analysis task")

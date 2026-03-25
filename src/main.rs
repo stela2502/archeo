@@ -1,20 +1,23 @@
 use clap::Parser;
 
-use archeo::primer::{ PrimerConfig};
-use archeo::report::Report;
+use archeo::content_analysis::{ContentAnalyzer, ContentConfig};
 use archeo::ollama::Ollama;
-use archeo::scanner::scanner_config::{ ScanConfig};
-use archeo::scanner::scanner::Scanner;
-use archeo::content_analysis::{ContentAnalyzer,  ContentConfig};
+use archeo::primer::PrimerConfig;
 use archeo::prompt_defaults::PromptDefaults;
+use archeo::report::Report;
+use archeo::scanner::scanner::Scanner;
+use archeo::scanner::scanner_config::ScanConfig;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Archeo – use a local AI system to make sense of your files")]
+#[command(
+    author,
+    version,
+    about = "Archeo – use a local AI system to make sense of your files"
+)]
 struct Args {
     // -------------------------------------------------
     // Core
     // -------------------------------------------------
-
     /// Root path to analyze.
     ///
     /// Example:
@@ -54,7 +57,6 @@ struct Args {
     // -------------------------------------------------
     // Global prompt overrides
     // -------------------------------------------------
-
     /// Override the global project-primer task prompt.
     ///
     /// This changes the high-level instruction used to summarize what the
@@ -139,7 +141,6 @@ struct Args {
     // -------------------------------------------------
     // Content analysis
     // -------------------------------------------------
-
     /// Enable content-based file analysis.
     ///
     /// Without this flag, Archeo mainly relies on filenames, paths, and project
@@ -236,7 +237,6 @@ struct Args {
     // -------------------------------------------------
     // Scan
     // -------------------------------------------------
-
     /// YAML configuration file for scan settings.
     ///
     /// This may define extensions, excluded directories, size limits, and other
@@ -256,7 +256,7 @@ struct Args {
     ///   --ext rs
     ///   --ext py
     ///   --ext md
-    #[arg(long,short='x', value_name = "EXT")]
+    #[arg(long, short = 'x', value_name = "EXT")]
     ext: Vec<String>,
 
     /// Directory name to exclude from scanning.
@@ -285,11 +285,7 @@ struct Args {
     /// By default, hidden paths may be skipped.
     #[arg(long)]
     include_hidden: bool,
-
 }
-
-
-
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -297,7 +293,6 @@ fn main() -> anyhow::Result<()> {
 
     let ollama = Ollama::default();
 
-    
     let installed_models = match ollama.list_models() {
         Ok(models) => models,
         Err(err) => {
@@ -358,10 +353,8 @@ fn main() -> anyhow::Result<()> {
     changed |= prompts.apply_content_primer_rules(&args.content_primers);
     changed |= prompts.apply_kind_primer_rules(&args.kind_primers);
 
-
     if changed {
-        let prompt_snapshot_path = std::path::Path::new(&args.output)
-            .with_extension("prompts.yml");
+        let prompt_snapshot_path = std::path::Path::new(&args.output).with_extension("prompts.yml");
         prompts.write_used_catalog(&prompt_snapshot_path)?;
 
         println!(
@@ -374,15 +367,7 @@ fn main() -> anyhow::Result<()> {
         );
     }
 
-    let primer_config = PrimerConfig::from_sources(
-        &files,
-        None,
-        None,
-        true,
-        true,
-    );
-
-
+    let primer_config = PrimerConfig::from_sources(&files, None, None, true, true);
 
     // Per-file content analysis
     let content_config = ContentConfig::from_sources(
@@ -396,7 +381,6 @@ fn main() -> anyhow::Result<()> {
     );
     let analyzer = ContentAnalyzer::new(content_config.clone());
 
-
     let content_reports = if content_config.enabled {
         analyzer.analyze_files(&files, &ollama, &args.model, &prompts)?
     } else {
@@ -406,12 +390,9 @@ fn main() -> anyhow::Result<()> {
     let content_summary = if content_reports.is_empty() {
         String::new()
     } else {
-        let mut compression_prompt =
-            prompts.content_compression_task(None);
+        let mut compression_prompt = prompts.content_compression_task(None);
 
-        PromptDefaults::apply_extra(
-            &mut compression_prompt, None,
-        );
+        PromptDefaults::apply_extra(&mut compression_prompt, None);
 
         ContentAnalyzer::compress_reports_with_ai(
             &content_reports,
@@ -444,8 +425,7 @@ fn main() -> anyhow::Result<()> {
 
     report.write(&args.output)?;
 
-    let prompt_snapshot_path = std::path::Path::new(&args.output)
-        .with_extension("prompts.yml");
+    let prompt_snapshot_path = std::path::Path::new(&args.output).with_extension("prompts.yml");
 
     println!(
         "Saved effective prompts for this run to {}",

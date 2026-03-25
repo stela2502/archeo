@@ -40,5 +40,4 @@ pub struct ContentCliArgs {
     /// Disable recursive traversal
     #[arg(long)]
     pub no_recursive_content: bool,
-
 }

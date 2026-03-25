@@ -1,7 +1,7 @@
 // config.rs
-use crate::content_analysis::{ParseMode};
+use crate::content_analysis::ParseMode;
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path};
+use std::path::Path;
 
 /// Configuration controlling how file content is analyzed.
 ///
@@ -153,9 +153,10 @@ impl ContentConfig {
     /// Applies CLI extension-to-mode rules such as `"rs=full"` or `"csv=sampled"`.
     fn apply_mode_rules(&mut self, rules: &[String]) {
         for item in rules {
-            if let Some((ext, raw_mode)) = self.parse_rule(item)  &&
-                let Some(mode) = ParseMode::from_cli_value(&raw_mode) {
-                    self.rules.insert(ext, mode);
+            if let Some((ext, raw_mode)) = self.parse_rule(item)
+                && let Some(mode) = ParseMode::from_cli_value(&raw_mode)
+            {
+                self.rules.insert(ext, mode);
             }
         }
     }
@@ -199,8 +200,14 @@ mod tests {
 
         assert_eq!(cfg.rule_for_path(Path::new("main.rs")).as_str(), "full");
         assert_eq!(cfg.rule_for_path(Path::new("notes.md")).as_str(), "full");
-        assert_eq!(cfg.rule_for_path(Path::new("table.csv")).as_str(), "sampled");
-        assert_eq!(cfg.rule_for_path(Path::new("table.tsv")).as_str(), "sampled");
+        assert_eq!(
+            cfg.rule_for_path(Path::new("table.csv")).as_str(),
+            "sampled"
+        );
+        assert_eq!(
+            cfg.rule_for_path(Path::new("table.tsv")).as_str(),
+            "sampled"
+        );
         assert!(!cfg.enabled);
         assert!(cfg.recursive);
         assert_eq!(cfg.max_full_bytes, 150_000);
@@ -286,8 +293,14 @@ mod tests {
         ]);
 
         assert_eq!(cfg.rule_for_path(Path::new("table.csv")).as_str(), "full");
-        assert_eq!(cfg.rule_for_path(Path::new("Cargo.toml")).as_str(), "sampled");
-        assert_eq!(cfg.rule_for_path(Path::new("file.badmode")).as_str(), "full");
+        assert_eq!(
+            cfg.rule_for_path(Path::new("Cargo.toml")).as_str(),
+            "sampled"
+        );
+        assert_eq!(
+            cfg.rule_for_path(Path::new("file.badmode")).as_str(),
+            "full"
+        );
     }
 
     /*

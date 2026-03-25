@@ -657,16 +657,10 @@ fn reduce_display_bundle(
 ///
 /// This first attempts table detection, then simple list detection, and finally
 /// falls back to compact generic text.
-fn reduce_textual_payload(
-    text: &str,
-    config: &NotebookParserConfig,
-    label: &str,
-) -> ReducedOutput {
-    if let Some((summary, content)) = subset_table_like_text(
-        text,
-        config.max_table_rows,
-        config.max_table_cols,
-    ) {
+fn reduce_textual_payload(text: &str, config: &NotebookParserConfig, label: &str) -> ReducedOutput {
+    if let Some((summary, content)) =
+        subset_table_like_text(text, config.max_table_rows, config.max_table_cols)
+    {
         return ReducedOutput {
             kind: RetainedOutputKind::Table,
             summary: format!("subset table retained from {}", label),
@@ -708,11 +702,9 @@ fn reduce_html_payload(html: &str, config: &NotebookParserConfig) -> ReducedOutp
 
 /// Reduce JSON payloads into compact retained content.
 fn reduce_json_payload(value: &Value, config: &NotebookParserConfig, label: &str) -> ReducedOutput {
-    if let Some((summary, content)) = subset_json_table_like_value(
-        value,
-        config.max_table_rows,
-        config.max_table_cols,
-    ) {
+    if let Some((summary, content)) =
+        subset_json_table_like_value(value, config.max_table_rows, config.max_table_cols)
+    {
         return ReducedOutput {
             kind: RetainedOutputKind::Table,
             summary: format!("subset json table retained from {}", label),
@@ -721,7 +713,8 @@ fn reduce_json_payload(value: &Value, config: &NotebookParserConfig, label: &str
     }
 
     let rendered = serde_json::to_string_pretty(value).unwrap_or_else(|_| "<invalid-json>".into());
-    let clipped = clip_text_lines_and_chars(&rendered, config.max_text_lines, config.max_object_chars);
+    let clipped =
+        clip_text_lines_and_chars(&rendered, config.max_text_lines, config.max_object_chars);
 
     ReducedOutput {
         kind: RetainedOutputKind::Json,
@@ -742,7 +735,10 @@ fn reduce_unknown_mime_payload(
 
     ReducedOutput {
         kind: RetainedOutputKind::Object,
-        summary: format!("unknown mime payload retained from cell {} ({})", cell_id, mime),
+        summary: format!(
+            "unknown mime payload retained from cell {} ({})",
+            cell_id, mime
+        ),
         content: clipped,
     }
 }
@@ -802,10 +798,8 @@ fn subset_table_like_text(
         return None;
     }
 
-    let split_lines: Vec<Vec<String>> = lines
-        .iter()
-        .map(|line| split_tableish_line(line))
-        .collect();
+    let split_lines: Vec<Vec<String>> =
+        lines.iter().map(|line| split_tableish_line(line)).collect();
 
     let tableish_count = split_lines.iter().filter(|cols| cols.len() >= 2).count();
     if tableish_count < 2 {
@@ -948,7 +942,10 @@ fn compact_cell_value(value: &Value) -> String {
         Value::Bool(b) => b.to_string(),
         Value::Number(n) => n.to_string(),
         Value::String(s) => clip_chars(&collapse_whitespace(s), 80),
-        other => clip_chars(&collapse_whitespace(&serde_json::to_string(other).unwrap_or_default()), 80),
+        other => clip_chars(
+            &collapse_whitespace(&serde_json::to_string(other).unwrap_or_default()),
+            80,
+        ),
     }
 }
 
@@ -1083,10 +1080,15 @@ mod tests {
         let notebook = Notebook::from_file(&path, NotebookParserConfig::default()).unwrap();
 
         assert_eq!(notebook.retained_outputs().len(), 1);
-        assert_eq!(notebook.retained_outputs()[0].kind, RetainedOutputKind::Text);
-        assert!(!notebook.retained_outputs()[0]
-            .content
-            .contains("THIS_IS_A_HUGE_BASE64_IMAGE_PAYLOAD"));
+        assert_eq!(
+            notebook.retained_outputs()[0].kind,
+            RetainedOutputKind::Text
+        );
+        assert!(
+            !notebook.retained_outputs()[0]
+                .content
+                .contains("THIS_IS_A_HUGE_BASE64_IMAGE_PAYLOAD")
+        );
     }
 
     #[test]

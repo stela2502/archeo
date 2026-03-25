@@ -57,7 +57,9 @@ impl Scanner {
         let walker = WalkDir::new(root)
             .follow_links(false)
             .into_iter()
-            .filter_entry(|entry| self.should_descend(entry.path(), entry.file_type().is_dir(), root));
+            .filter_entry(|entry| {
+                self.should_descend(entry.path(), entry.file_type().is_dir(), root)
+            });
 
         let mut result = Vec::new();
 
@@ -137,11 +139,10 @@ impl Scanner {
         let path = path.as_ref();
 
         path.components().any(|comp| match comp {
-            Component::Normal(name) => {
-                name.to_str()
-                    .map(|s| self.config.excluded_dirs.iter().any(|d| d == s))
-                    .unwrap_or(false)
-            }
+            Component::Normal(name) => name
+                .to_str()
+                .map(|s| self.config.excluded_dirs.iter().any(|d| d == s))
+                .unwrap_or(false),
             _ => false,
         })
     }
@@ -167,12 +168,10 @@ impl Scanner {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::{PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn scan_src_folder_finds_rust_files() {
@@ -183,7 +182,9 @@ mod tests {
         let scanner = Scanner::new(config);
 
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
-        let files = scanner.scan(&root).expect("scanner should parse src folder");
+        let files = scanner
+            .scan(&root)
+            .expect("scanner should parse src folder");
 
         println!("All the files: {:?}", files);
 
@@ -194,13 +195,19 @@ mod tests {
         );
 
         assert!(
-            files.iter().all(|p| p.extension().and_then(|e| e.to_str()) == Some("rs")),
+            files
+                .iter()
+                .all(|p| p.extension().and_then(|e| e.to_str()) == Some("rs")),
             "scanner returned non-.rs files: {files:#?}"
         );
 
         assert!(
-            files.iter().any(|p| p.file_name().and_then(|n| n.to_str()) == Some("main.rs"))
-                || files.iter().any(|p| p.file_name().and_then(|n| n.to_str()) == Some("lib.rs")),
+            files
+                .iter()
+                .any(|p| p.file_name().and_then(|n| n.to_str()) == Some("main.rs"))
+                || files
+                    .iter()
+                    .any(|p| p.file_name().and_then(|n| n.to_str()) == Some("lib.rs")),
             "scanner did not find main.rs or lib.rs in src: {files:#?}"
         );
     }

@@ -48,23 +48,13 @@ impl Default for ScanConfig {
     /// - `include_hidden`: `false`
     fn default() -> Self {
         Self {
-            allowed_extensions: vec![
-                "rs".into(),
-                "py".into(),
-                "md".into(),
-                "txt".into(),
-            ],
-            excluded_dirs: vec![
-                ".git".into(),
-                "target".into(),
-                "node_modules".into(),
-            ],
+            allowed_extensions: vec!["rs".into(), "py".into(), "md".into(), "txt".into()],
+            excluded_dirs: vec![".git".into(), "target".into(), "node_modules".into()],
             max_file_size: 5_000_000,
             include_hidden: false,
         }
     }
 }
-
 
 impl ScanConfig {
     /// Builds a [`ScanConfig`] from defaults, optional YAML, and CLI overrides.
@@ -86,9 +76,10 @@ impl ScanConfig {
         let mut cfg = ScanConfig::default();
 
         if let Some(path) = config_path
-            && let Ok(yaml) = Yaml::load_from_file(path) {
-                cfg = ScanConfig::from_yaml_loose(&yaml);
-            }
+            && let Ok(yaml) = Yaml::load_from_file(path)
+        {
+            cfg = ScanConfig::from_yaml_loose(&yaml);
+        }
 
         if !ext.is_empty() {
             cfg.allowed_extensions = ext.to_vec();
@@ -141,9 +132,10 @@ impl ScanConfig {
         }
 
         if let Some(Yaml::Value(s)) = map.get("max_file_size")
-            && let Ok(v) = s.parse::<usize>() {
-                cfg.max_file_size = v;
-            }
+            && let Ok(v) = s.parse::<usize>()
+        {
+            cfg.max_file_size = v;
+        }
 
         if let Some(Yaml::Value(s)) = map.get("include_hidden") {
             cfg.include_hidden = s == "true";
@@ -222,7 +214,6 @@ fn as_string(y: &Yaml) -> Option<String> {
 mod tests {
     use super::*;
 
-
     #[test]
     fn default_config_matches_expected_values() {
         let cfg = ScanConfig::default();
@@ -242,7 +233,10 @@ mod tests {
         );
         map.insert(
             "excluded_dirs".into(),
-            Yaml::Array(vec![Yaml::Value("target".into()), Yaml::Value("dist".into())]),
+            Yaml::Array(vec![
+                Yaml::Value("target".into()),
+                Yaml::Value("dist".into()),
+            ]),
         );
         map.insert("max_file_size".into(), Yaml::Value("1234".into()));
         map.insert("include_hidden".into(), Yaml::Value("true".into()));
@@ -284,7 +278,6 @@ mod tests {
 
         assert_eq!(cfg.allowed_extensions, vec!["rs"]);
     }
-
 
     #[test]
     fn to_yaml_round_trips_through_from_yaml_loose() {

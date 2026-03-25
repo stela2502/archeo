@@ -14,8 +14,8 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::scanner::scanner_config::ScanConfig;
 use crate::content_analysis::ContentAnalysisReport;
+use crate::scanner::scanner_config::ScanConfig;
 
 /// Final report structure produced by Archeo.
 ///
@@ -68,9 +68,10 @@ impl Report {
         let path = path.as_ref();
 
         if let Some(parent) = path.parent()
-            && !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+            && !parent.exists()
+        {
+            fs::create_dir_all(parent)?;
+        }
 
         fs::write(path, self.to_string())?;
         Ok(())

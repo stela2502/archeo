@@ -1,11 +1,11 @@
 // descriptor.rs
 use anyhow::{Context, Result};
-use serde_json::Value;
+//use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::content_analysis::{ContentConfig, ParseMode};
 use crate::content_analysis::notebooks::notebook::{Notebook, NotebookParserConfig};
+use crate::content_analysis::{ContentConfig, ParseMode};
 
 //use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -181,7 +181,9 @@ impl ContentDescriptor {
                 }
             }
             ParseMode::Sampled => (Self::sample_text_lines(&raw, 50, 30, 50), true, true),
-            ParseMode::Skip => anyhow::bail!("skip mode should be handled before descriptor creation"),
+            ParseMode::Skip => {
+                anyhow::bail!("skip mode should be handled before descriptor creation")
+            }
         };
 
         Ok(Self {
@@ -232,7 +234,9 @@ impl ContentDescriptor {
                 }
             }
             ParseMode::Sampled => (Self::sample_text_lines(&rendered, 80, 40, 80), true, true),
-            ParseMode::Skip => anyhow::bail!("skip mode should be handled before descriptor creation"),
+            ParseMode::Skip => {
+                anyhow::bail!("skip mode should be handled before descriptor creation")
+            }
         };
 
         Ok(Self {
@@ -303,13 +307,17 @@ impl ContentDescriptor {
         let sampled_cols = match parse_mode {
             ParseMode::Full => total_cols,
             ParseMode::Sampled => total_cols.min(config.sample_cols),
-            ParseMode::Skip => anyhow::bail!("skip mode should be handled before descriptor creation"),
+            ParseMode::Skip => {
+                anyhow::bail!("skip mode should be handled before descriptor creation")
+            }
         };
 
         let sampled_rows = match parse_mode {
             ParseMode::Full => total_rows,
             ParseMode::Sampled => total_rows.min(config.sample_rows),
-            ParseMode::Skip => anyhow::bail!("skip mode should be handled before descriptor creation"),
+            ParseMode::Skip => {
+                anyhow::bail!("skip mode should be handled before descriptor creation")
+            }
         };
 
         let mut content = String::new();
@@ -384,30 +392,6 @@ impl ContentDescriptor {
         out.push_str(&self.content);
 
         out
-    }
-
-    /// Convert a notebook `source` field into plain text.
-    ///
-    /// Jupyter stores cell source either as:
-    ///
-    /// - one string
-    /// - an array of strings
-    ///
-    /// This method normalizes both forms into a single string.
-    fn render_ipynb_source(source: Option<&Value>) -> String {
-        match source {
-            Some(Value::String(s)) => s.clone(),
-            Some(Value::Array(arr)) => {
-                let mut out = String::new();
-                for item in arr {
-                    if let Some(s) = item.as_str() {
-                        out.push_str(s);
-                    }
-                }
-                out
-            }
-            _ => String::new(),
-        }
     }
 
     /// Truncate a text payload while preserving the beginning and end.

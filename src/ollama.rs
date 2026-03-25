@@ -46,8 +46,9 @@ impl Ollama {
     /// Create a new Ollama client with a given base URL.
     pub fn new<S: Into<String>>(base_url: S) -> Self {
         let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(300))
-        .build().unwrap();
+            .timeout(std::time::Duration::from_secs(300))
+            .build()
+            .unwrap();
 
         Self {
             base_url: base_url.into(),
@@ -71,7 +72,7 @@ impl Ollama {
 
         let response = self
             .client
-            .post(&format!( "{}/generate", &self.base_url ) )
+            .post(format!("{}/generate", &self.base_url))
             .json(&request)
             .send()?
             .error_for_status()?;

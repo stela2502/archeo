@@ -11,7 +11,6 @@
 
 use std::path::PathBuf;
 
-
 /// Normalized configuration used by the primer stage.
 #[derive(Debug, Clone)]
 pub struct PrimerConfig {
@@ -174,8 +173,9 @@ mod tests {
 
         let cfg = PrimerConfig::infer_from_files(&files);
 
-        assert_eq!(cfg.languages, vec!["Python".to_string(), "Rust".to_string()]);
+        assert_eq!(
+            cfg.languages,
+            vec!["Python".to_string(), "Rust".to_string()]
+        );
     }
-
-
 }

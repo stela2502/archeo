@@ -1,4 +1,4 @@
-//extension_rule.rs 
+//extension_rule.rs
 use crate::content_analysis::ParseMode;
 
 #[derive(Debug, Clone)]
