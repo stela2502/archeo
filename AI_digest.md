@@ -1,331 +1,1814 @@
 # Archeo Report
 
 ## Target
-/home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/
+.
 
 ## Model
-gemma3:4b
+deepseek-coder-v2:latest
 
 ## Scan Configuration
 ```
 Scan configuration:
-  allowed_extensions: tsv, csv, ipynb, R, r, py
-  excluded_dirs: /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/ONT_for_Stefan/, /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/work/, /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53-capt_2/, /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53-capt_4/
+  allowed_extensions: rs
+  excluded_dirs: .git, target, node_modules
   max_file_size: 5000000 bytes
   include_hidden: false
 ```
 
 ## Included Files
-- Untitled.ipynb
-- TP53_capt_2_SNPS.tsv
-- Untitled1.ipynb
-- RscriptSource.R
-- TP53_capt_4_SNPS.tsv
-- Simple_Grouping.ipynb
-- TryWithSummaryFunction.ipynb
-- plots/TP53_capt_2_SNPS_overlap_mutated.tsv
-- plots/TP53_capt_4_SNPS_overlap_mutated.tsv
-- plots/TP53_capt_4_SNPS_overlap_usable.tsv
-- plots/TP53_capt_2_SNPS_overlap_usable.tsv
+- src\content_analysis\analyzer.rs
+- src\content_analysis\config.rs
+- src\content_analysis\descriptor.rs
+- src\content_analysis\extension_rule.rs
+- src\content_analysis\mod.rs
+- src\content_analysis\notebooks\mod.rs
+- src\content_analysis\notebooks\notebook.rs
+- src\content_analysis\parse_mode.rs
+- src\lib.rs
+- src\main.rs
+- src\ollama.rs
+- src\primer.rs
+- src\prompt_defaults.rs
+- src\report.rs
+- src\scanner\mod.rs
+- src\scanner\scanner.rs
+- src\scanner\scanner_config.rs
 
 ## AI Analysis
 
-## Short Summary
-This folder likely contains an analysis of TP53 mutations from two datasets, TP53_capt_2_SNPS and TP53_capt_4_SNPS. The analysis involved both Python (Jupyter notebooks) and R scripting, with a focus on grouping and potentially generating summary statistics related to the identified mutations.
+# CLI Usage Summary
+
+## Per Option
+- name: allowed_extensions
+  - usage: Used in `ScanConfig` struct to specify which file extensions are allowed for scanning.
+  - status: used
+  - notes: This option is directly defined and used within the configuration structure (`ScanConfig`) to filter file types during scanning.
+
+- name: excluded_dirs
+  - usage: Used in `ScanConfig` struct to specify directories that should be excluded from scanning.
+  - status: used
+  - notes: This option helps in narrowing down the scope of files scanned, focusing only on those relevant for analysis.
+
+- name: max_file_size
+  - usage: Used in `ScanConfig` struct to set a maximum file size limit for inclusion in scans.
+  - status: used
+  - notes: This option helps manage resource usage by excluding very large files that might not be of interest during analysis.
+
+- name: include_hidden
+  - usage: Used in `ScanConfig` struct to determine if hidden files should be included in the scan.
+  - status: used
+  - notes: This option is useful for thoroughness and can be toggled based on whether deeper system or project insights are desired.
+
+## Conflicts
+There are no conflicts identified among the CLI options within this context, as each option serves a distinct purpose related to configuration of the file scanning process.
+
+## Cleanup candidates
+- **Unlikely**: There is no clear indication that any specific CLI option would be considered obsolete in this context without further usage evidence or changes in functionality not provided here. The options seem integral to configuring the scanner's behavior based on user needs and project specifics.
+
+# Short Summary
+The Rust project appears to be a file scanning tool, likely used for analyzing files within a system, with specific configuration options tailored to manage which types of files are considered during analysis and how large they can be. This setup is flexible and customizable through command-line interface parameters such as allowed extensions, excluded directories, maximum file size, and including or excluding hidden files.
 
 ## Main Components
-*   **Jupyter Notebooks:** `Untitled.ipynb`, `Simple_Grouping.ipynb`, `TryWithSummaryFunction.ipynb` - These notebooks likely contained the core analysis steps, potentially including data manipulation, mutation grouping, and statistical calculations.
-*   **R Script:** `RscriptSource.R` - This script likely performed calculations or data manipulation, possibly interacting with the Jupyter notebooks.
-*   **TSV Files:** `TP53_capt_2_SNPS.tsv`, `TP53_capt_4_SNPS.tsv` - These files likely contained the raw mutation data.
-*   **Overlapping TSV Files:** `plots/TP53_capt_2_SNPS_overlap_mutated.tsv`, `plots/TP53_capt_4_SNPS_overlap_mutated.tsv`, `plots/TP53_capt_4_SNPS_overlap_usable.tsv`, `plots/TP53_capt_2_SNPS_overlap_usable.tsv` - These files most likely contain overlap analysis plots which may be used for visualization and comparison of mutated regions.
+- **Modules**: 
+  - `scanner`: Handles the main scanning functionality.
+  - `scanner_config`: Manages configuration settings for the scanner, including CLI options like `allowed_extensions`, `excluded_dirs`, `max_file_size`, and `include_hidden`.
 
 ## Likely Workflow
-1.  **Data Loading:** The `TP53_capt_2_SNPS.tsv` and `TP53_capt_4_SNPS.tsv` files were likely loaded into a Jupyter notebook using Python.
-2.  **Data Processing:** The `Simple_Grouping.ipynb` notebook may have been used to group mutations, likely based on some defined criteria.  The `TryWithSummaryFunction.ipynb` notebook might have contained a function to summarize these groups.
-3.  **R Script Execution:** The `RscriptSource.R` file was likely used to perform additional data manipulation or calculations, potentially in conjunction with the Jupyter notebooks.
-4.  **Output Generation:** The overlapping TSV files (`plots/…`) were probably created as outputs of the grouping and analysis steps. These might be used for visualization.
+1. **Configuration**: User defines or adjusts configurations in a YAML file or via command-line arguments (`allowed_extensions`, `excluded_dirs`, `max_file_size`, `include_hidden`).
+2. **Execution**: The scanner uses these configurations to determine which files to scan and which to exclude, based on the specified criteria.
+3. **Analysis**: Files are scanned according to the configuration settings, potentially generating reports or insights relevant to the project's scope.
 
 ## Important Files
-*   **TP53_capt_2_SNPS.tsv & TP53_capt_4_SNPS.tsv:** These files are the primary data source, representing the mutation capture data. The files contain the mutation data, likely including variant identifiers and possibly genomic coordinates.
-*   **Simple_Grouping.ipynb:** This notebook is crucial, as it likely contains the logic for grouping the mutations, which is a core step in variant analysis.
-*   **plots/TP53_capt_2_SNPS_overlap_mutated.tsv, plots/TP53_capt_4_SNPS_overlap_mutated.tsv, plots/TP53_capt_4_SNPS_overlap_usable.tsv, plots/TP53_capt_2_SNPS_overlap_usable.tsv**: These TSV files are important because the file names describe an overlap analysis of mutated regions.
+- `src\scanner\scanner_config.rs`: Defines the `ScanConfig` struct and methods for handling CLI options directly in the configuration logic.
+- `src\main.rs`: Entry point where CLI options might be parsed and used to initialize or configure the scanner based on user input.
+
+These files are crucial as they encapsulate the core functionality of managing file scanning through command-line options, demonstrating how external inputs shape the application's behavior in handling large sets of data for specific analysis tasks.
 
 ## Content Analysis Summary
- distributive.
+ The provided code snippets are part of a larger Rust project that likely involves file scanning and configuration management. Let's break down the key components and functionalities from these snippets:
 
+### 1. Main Module (`scanner`)
+This module seems to be responsible for file scanning, possibly using specific extensions or ignoring certain directories. The main functionality is encapsulated in the `scanner` crate.
+
+#### Key Components:
+- **Structs and Enums**: There might be structs or enums defined for configuration options like allowed extensions, excluded directories, etc.
+- **Functions**: Functions to initialize or configure the scanner based on external settings (e.g., from a YAML file).
+
+### 2. Configuration Module (`scanner_config`)
+This module handles all aspects of configuring the scanner's behavior through a configuration struct named `ScanConfig`. It includes:
+
+#### Key Components:
+- **Struct `ScanConfig`**: This struct holds various configuration options:
+  - `allowed_extensions`: A vector of strings representing allowed file extensions.
+  - `excluded_dirs`: A vector of strings representing directories to be excluded from scanning.
+  - `max_file_size`: An integer representing the maximum size (in bytes) of files to be considered for scanning.
+  - `include_hidden`: A boolean indicating whether hidden files should be included in the scan.
+- **Default Implementation**: The struct has a default implementation that sets some sensible defaults, such as allowed extensions and excluded directories, and a maximum file size.
+- **YAML Parsing**: Functions to parse configuration from YAML, including `from_yaml_loose` which handles parsing of supported fields loosely (i.e., it can handle extra or missing fields gracefully).
+
+### 3. Utility Function (`as_string`)
+This function is used within the configuration module to convert Yaml values to strings, useful for extracting plain values from more complex YAML structures.
+
+### Example Usage:
+1. **Initializing Configuration**:
+   ```rust
+   let cfg = ScanConfig::default(); // Uses default settings
+   ```
+2. **Customizing Configuration**:
+   ```rust
+   let custom_cfg = ScanConfig::from_sources(
+       &["txt", "md"], 
+       &[".git", "target"], 
+       Some(5_000_000), 
+       true
+   ); // Customizes settings based on requirements
+   ```
+3. **Parsing from YAML**:
+   ```rust
+   let yaml = get_yaml(); // Assume this function retrieves the YAML configuration
+   let cfg_from_yaml = ScanConfig::from_yaml_loose(&yaml);
+   ```
+4. **Converting to YAML**:
+   ```rust
+   let yaml_config = cfg.to_yaml();
+   ```
+5. **Describing Configuration**:
+   ```rust
+   println!("{}", cfg.describe()); // Prints a human-readable description of the configuration
+   ```
+
+### Summary:
+The `scanner` and `scanner_config` modules together provide a comprehensive way to configure and manage file scanning operations, allowing for flexibility in specifying which files to include or exclude based on various criteria. The use of YAML for external configuration enables easy integration with different systems without modifying the core application code.
 
 
 ## Content Analysis Detailed Per File
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/Untitled.ipynb
+### .\src\content_analysis\analyzer.rs
 
 
-## Materials and Methods
+ ```rust
+use anyhow::{Context, Result};
+use std::path::{Path, PathBuf};
 
-This analysis was performed using Jupyter Notebook, utilizing Python 3.9. The primary libraries employed were `pandas` for data manipulation and `matplotlib` and `seaborn` for data visualization.
+use crate::content_analysis::{ContentConfig, ContentDescriptor, ParseMode};
+use crate::ollama::Ollama;
+use crate::prompt_defaults::PromptDefaults;
 
-**Data Input:** The analysis begins with a CSV file containing mutation data from a specific study (details of the dataset are not available from the notebook itself). The CSV file was assumed to have columns including, but not limited to, patient identifiers, mutation locations, and variant classifications.
+#[derive(Debug, Clone)]
+pub struct ContentAnalysisReport {
+    pub path: PathBuf,
+    pub extension: String,
+    pub parse_mode: String,
+    pub primer_used: Option<String>,
+    pub descriptor: Option<ContentDescriptor>,
+    pub ai_response: Option<String>,
+    pub warnings: Vec<String>,
+}
 
-**Analysis Steps:**
+#[derive(Debug, Clone)]
+pub struct ContentAnalyzer {
+    pub config: ContentConfig,
+}
 
-1.  **Data Loading and Inspection:** The notebook starts by importing necessary libraries and loading the mutation data from the CSV file into a pandas DataFrame. Initial inspection of the data includes examining the first few rows, checking data types, and assessing the presence of missing values.
-2.  **Data Cleaning:** The code performs basic data cleaning steps, which may include handling missing values (currently, no explicit handling is apparent) and ensuring data types are appropriate for analysis.
-3.  **Mutation Frequency Calculation:**  The notebook calculates the frequency of each identified mutation within the dataset. This is done using the `value_counts()` method on the relevant mutation column in the DataFrame.
-4.  **Visualization:**  Several visualizations were generated. Specifically, histograms were created to represent the distribution of mutation frequencies. Seaborn was used to create statistical plots.  The notebook focuses on visualizing the raw mutation counts. 
-5. **Table Generation:**  Finally, a table summarizing the mutation frequencies is generated and displayed. 
-
-**Analysis Type:** This notebook appears to be largely exploratory in nature, primarily focused on visualizing and summarizing the mutation frequency distribution. It does not demonstrate a specific hypothesis or delve into complex statistical testing. It serves as a descriptive overview of the mutation data.
-
-
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/TP53_capt_2_SNPS.tsv
-
-
-**Materials Section Summary**
-
-This file appears to be a tab-separated value (TSV) file containing genotype data, likely from a targeted sequencing or variant calling analysis.
-
-**Libraries Used:**
-
-Based on the column names and data format, it's likely that this file was processed using tools such as:
-
-*   **Biopython:** Likely used for file handling and data manipulation due to the TSV format.
-*   **Variant calling tools (e.g., GATK, FreeBayes):** The column names (CHROM, POS, REF, ALT, GT, etc.) are typical of variant calling outputs.
-
-**Analysis Steps Performed:**
-
-1.  **Variant Calling:** The data represents the results of a variant calling process, where mutations or SNPs (single nucleotide polymorphisms) were identified within the specified genomic regions (chr17 in this case).
-2.  **Genotype Determination:** The `GT` column contains the genotypes for each sample at each variant position. It uses standard notation (e.g., "0/0" indicating homozygous reference, "0/1" heterozygous).
-3.  **Quality Metrics:** Several columns provide quality information associated with each variant, including `QUAL` (quality score), `FILTER` (filtering criteria), `INFO` (additional information), and `DP` (depth of coverage).
-4.  **Variant Annotation:** The other columns likely represent annotations for each variant, such as allele frequencies (`AF`), minor allele frequency (`MAF`), and other relevant characteristics.
-
-**Table Characteristics:**
-
-*   **Identifier Columns:** `CHROM`, `POS` are likely key identifier columns representing the chromosome and position of the variant.
-*   **Measured Values:** The core data consists of the genotype calls (GT), quality scores (QUAL), and other variant-related metrics.
-*   **Raw Input/Derived Results:** This file likely represents derived results after the initial variant calling process.  The columns contain pre-computed annotations and quality scores.
-*   **Sampled Rows:** The file is sampled to be smaller but contains 3 rows, likely representing different samples.
-
-**Note:** The presence of “dn” in one of the `FILTER` columns suggests that the filtering criteria were not standard; possibly “DN” meaning “data not available” or a similar non-standard notation.
-
-
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/Untitled1.ipynb
-
-
-## Methods
-
-This study investigated the expression of the *TP53* gene in two distinct 10X Genomics sequencing datasets. The analysis was performed using the R programming language and the Seurat package.
-
-**Data Input:** The analysis utilized two 10X Genomics gene expression matrices derived from bulk sequencing data of two separate capture experiments ("TP53-capt_2" and "TP53-capt_4").  These matrices were located within specified directories.
-
-**Data Processing:** The raw 10X data were read into R using the `Read10X` function.  The input data consisted of gene expression counts. The raw data was then used to generate Seurat objects (`obj` and `obj2`) by applying the `CreateSeuratObject` function.
-
-**Initial Exploration & Filtering:**  The Seurat objects were then inspected using `slotNames` and `class` to verify the data types. Row sums of the gene expression matrices were calculated to identify differentially expressed genes, with the results sorted in descending order using the `sort` function and the `Matrix` package.  The means of *TP53* expression within the top genes were calculated.
-
-**TP53 Expression Analysis:**  The analysis specifically focused on the *TP53* gene.  Cells expressing *TP53* above a cutoff of 4 were identified. A histogram was generated showing the distribution of *TP53* expression levels for cells meeting this criterion, using `hist`. The number of cells meeting the *TP53* cutoff was also counted.
-
-**Workflow Summary:** The workflow followed these steps: 1) Read raw 10X gene expression matrices, 2) Create Seurat objects, 3) Initial inspection of the data, 4) Identification and quantification of *TP53* expression levels using a threshold of 4, and 5) Visualization of *TP53* expression distributions.
-
-**Type:** Exploratory
-
-
-
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/RscriptSource.R
-
-
-## Materials Section
-
-This R script, `ont_snp3.R`, performs a minimal single-file analysis of TSV-based SNP data from single-cell experiments. The script is designed to process tabular data where each row represents a cell and each column represents a genetic variant (SNP). The analysis focuses on identifying mutated cells based on a defined criterion and generating summary statistics for each SNP and overall cell populations.
-
-**Libraries Used:**
-
-*   **`utils`**: Used for reading TSV files (`read.delim`), generating matrix indices, and writing tables (`write.table`).
-
-**Analysis Steps:**
-
-1.  **SNP Counting & Parsing:** The `parse_counts_no_format` function converts string representations of counts (e.g., "52,5") into numerical counts. This function is the core of the analysis, taking a string representing the counts of each allele and returning a numeric count.
-
-2.  **Reference Matrix Creation:** The `get_ref_alt_matrices` function takes the count data and creates a reference matrix (`n_ref`), an alternative allele matrix (`n_alt`), a total count matrix (`n_total`), and matrices for cells considered "usable" or "mutated" based on a defined criteria.
-
-3.  **SNP Summarization:** The `per_snp_summary` function calculates summary statistics for each SNP, including the number of cells carrying each allele and the total number of mutated cells.
-
-4.  **State Matrix Construction:** The `make_state_matrix` function creates a state matrix based on the criteria for "usable" and "mutated" cells. This matrix is used for further analysis and visualization.
-
-5.  **Object Combination:** The script assembles all the individual SNP analyses into a single object, storing the raw data, parsed counts, summary statistics, and the state matrix.
-
-6. **Venn Diagram Generation (Optional):** The `state_sets_from_rows` function creates sets of cells that are considered "usable" or "mutated" for each SNP. The `plot_venn_if_possible` function (which requires `ggVennDiagram`) then generates Venn diagrams visually representing the overlap between these sets. It also creates tabular overlap data for easier analysis.
-
-7. **Main Runner:** The `ont_snp3_run` function orchestrates the entire analysis process, taking a TSV file pattern as input and performing the analysis on each file. It generates summary statistics for each SNP and provides an overview of the global cell populations.
-
-**Input Data:**
-
-The script expects a TSV file where each row represents a cell, and columns represent SNPs. The first column should be CHROM, the second POS, the third REF, and the fourth ALT, as defined in the `snp_key_cols` parameter.
-
-**Output:**
-
-*   The script outputs summary statistics for each SNP, including the number of cells carrying each allele, the total number of mutated cells, and overall statistics like the number of cells that are "usable" and "mutated".
-*   It creates output plots (Venn diagrams) in the `plots` directory (if `ggVennDiagram` is installed).
-*   The script writes tabular files containing overlap counts between SNP sets to the `plots` directory.  The `ont_snp3_run` function returns a list of objects, one for each processed file, allowing for batch processing of multiple TSV files.
-
-
-
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/TP53_capt_4_SNPS.tsv
-
-
-```json
-{
-  "materials_section": {
-    "title": "Materials and Methods",
-    "description": "This file contains a table of single nucleotide polymorphism (SNP) data derived from a targeted sequencing analysis, likely performed to investigate TP53 mutations. The data appears to be generated from a capture sequencing approach.",
-    "libraries": [
-      "R",
-      "potentially Bioconductor packages such as 'VariantAnnotation', 'seqequal', 'SNPassoc' or similar for variant calling and analysis."
-    ],
-    "analysis_steps": [
-      "Capture Sequencing: The data originates from a targeted sequencing approach, likely using a custom capture probe to enrich for TP53 variants.",
-      "Variant Calling: The data likely underwent variant calling to identify SNPs. The ‘dn’ filter in the third row indicates a potential discordance in calling that requires further investigation.",
-      "Data Generation: The table provides genotype data (GT) for each SNP, along with quality metrics (GQ, DP, AD), variant frequency information (VAF, VAF1), and other relevant annotation fields (INFO).",
-      "Filtering: The ‘FILTER’ column indicates the variant passed quality filters (PASS, dn).",
-      "Metadata Inclusion: The table contains a significant amount of metadata associated with each variant, including chromosome (CHROM), position (POS), reference allele (REF), alternative allele (ALT), and quality scores. "
-    ],
-    "data_description": {
-      "identifier_columns": [
-        "CHROM",
-        "POS",
-        "ID",
-        "REF",
-        "ALT"
-      ],
-      "measured_values": [
-        "Genotype (GT)",
-        "Quality Score (GQ)",
-        "Depth (DP)",
-        "Allele Frequency (AF)",
-        "Variant Allele Frequency (VAF)"
-      ],
-      "raw_input_or_derived": "Derived results – this table presents genotype and variant frequency data derived from sequencing reads after filtering and annotation."
+impl ContentAnalyzer {
+    pub fn new(config: ContentConfig) -> Self {
+        Self { config }
     }
-  }
+
+    pub fn analyze_files(
+        &self,
+        files: &[PathBuf],
+        ollama: &Ollama,
+        model: &str,
+        prompts: &PromptDefaults,
+    ) -> Result<Vec<ContentAnalysisReport>> {
+        let mut reports = Vec::with_capacity(files.len());
+
+        for path in files {
+            match self.analyze_file(path, ollama, model, prompts) {
+                Ok(report) => reports.push(report),
+                Err(err) => reports.push(ContentAnalysisReport {
+                    path: path.clone(),
+                    extension: self.config.extension_of(path),
+                    parse_mode: "error".to_string(),
+                    primer_used: None,
+                    descriptor: None,
+                    ai_response: None,
+                    warnings: vec![format!("analysis failed: {err:#}")],
+                }),
+            }
+        }
+
+        Ok(reports)
+    }
+
+    pub fn analyze_file(
+        &self,
+        path: &Path,
+        ollama: &Ollama,
+        model: &str,
+        prompts: &PromptDefaults,
+    ) -> Result<ContentAnalysisReport> {
+        if !path.is_file() {
+            anyhow::bail!("not a file: {}", path.display());
+        }
+
+        if !self.config.allows_path(path) {
+            return Ok(ContentAnalysisReport {
+                path: path.to_path_buf(),
+                extension: self.config.extension_of(path),
+                parse_mode: "filtered".to_string(),
+                primer_used: None,
+                descriptor: None,
+                ai_response: None,
+                warnings: vec!["extension filtered by content config".to_string()],
+            });
+        }
+
+        let parse_mode = self.config.rule_for_path(path);
+        if parse_mode == ParseMode::Skip {
+            return Ok(ContentAnalysisReport {
+                path: path.to_path_buf(),
+                extension: self.config.extension_of(path),
+                parse_mode: "skip".to_string(),
+                primer_used: None,
+                descriptor: None,
+                ai_response: None,
+                warnings: vec!["skipped by rule".to_string()],
+            });
+        }
+
+        let descriptor = ContentDescriptor::from_path(path, &self.config, parse_mode)
+            .with_context(|| format!("failed to build descriptor for {}", path.display()))?;
+
+        prompts
+            .validate_internal_coverage()
+            .context("prompt defaults failed internal coverage validation")?;
+
+        let primer = self.combined_file_primer(&descriptor, prompts);
+        println!(
+            "\n=== FILE PRIMER [{}] ===\n{}\n=======================\n",
+            descriptor.path.display(),
+            primer
+        );
+        let prompt = self.build_prompt(&descriptor, prompts);
+
+        let ai_response = ollama
+            .generate(model, &prompt)
+            .with_context(|| format!("ollama failed for {}", path.display()))?;
+
+        Ok(ContentAnalysisReport {
+            path: path.to_path_buf(),
+            extension: descriptor.extension.clone(),
+            parse_mode: parse_mode.as_str().to_string(),
+            primer_used: Some(primer),
+            descriptor: Some(descriptor),
+            ai_response: Some(ai_response),
+            warnings: Vec::new(),
+        })
+    }
+
+    pub fn combined_file_primer(
+        &self,
+        descriptor: &ContentDescriptor,
+        prompts: &PromptDefaults,
+    ) -> String {
+        let mut out = String::new();
+
+        out.push_str(prompts.file_analysis_task(None).trim());
+        out.push_str("\n\nFile-type instructions:\n");
+        out.push_str(prompts.content_prompt_for(descriptor).trim());
+
+        if let Some(extra) = prompts.catalog.file_analysis_extra.as_deref() {
+            let extra = extra.trim();
+            if !extra.is_empty() {
+                out.push_str("\n\nAdditional instructions:\n");
+                out.push_str(extra);
+            }
+        }
+
+        out
+    }
+
+    pub fn render_detailed_summary(reports: &[ContentAnalysisReport]) -> String {
+        let mut out = String::new();
+
+        for report in reports {
+            out.push_str(&format!("FILE: {}\n", report.path.display()));
+            out.push_str(&format!("EXTENSION: {}\n", report.extension));
+            out.push_str(&format!("PARSE_MODE: {}\n", report.parse_mode));
+
+            if let Some(primer) = &report.primer_used {
+                out.push_str(&format!("PRIMER_USED:\n{}\n", primer));
+            }
+
+            if let Some(ai_response) = &report.ai_response {
+                out.push_str(&format!("INTERPRETATION:\n{}\n", ai_response));
+            }
+
+            for warning in &report.warnings {
+                out.push_str(&format!("WARNING: {}\n", warning));
+            }
+
+            out.push_str("\n---\n\n");
+        }
+
+        out
+    }
+
+    pub fn compress_reports_with_ai(
+        reports: &[ContentAnalysisReport],
+        ollama: &crate::ollama::Ollama,
+        model: &str,
+        prompt: &str,
+    ) -> anyhow::Result<String> {
+        let detailed = Self::render_detailed_summary(reports);
+        let final_prompt = format!("{}\n\nFile analyses:\n\n{}", prompt, detailed);
+        ollama.generate(model, &final_prompt)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base_report() -> ContentAnalysisReport {
+        ContentAnalysisReport {
+            path: PathBuf::from("src/example.rs"),
+            extension: "rs".to_string(),
+            parse_mode: "full".to_string(),
+            primer_used: None,
+            descriptor: None,
+            ai_response: None,
+            warnings: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn render_detailed_summary_includes_core_report_fields() {
+        let report = base_report();
+
+        let text = ContentAnalyzer::render_detailed_summary(&[report]);
+
+        assert!(text.contains("FILE: src/example.rs"));
+        assert!(text.contains("EXTENSION: rs"));
+        assert!(text.contains("PARSE_MODE: full"));
+        assert!(text.contains("\n---\n"));
+    }
+
+    #[test]
+    fn render_detailed_summary_includes_primer_and_interpretation() {
+        let mut report = base_report();
+        report.primer_used = Some("  custom primer  ".to_string());
+        report.ai_response = Some("  looks like Rust source  ".to_string());
+
+        let text = ContentAnalyzer::render_detailed_summary(&[report]);
+
+        assert!(text.contains("PRIMER_USED:\ncustom primer\n"));
+        assert!(text.contains("INTERPRETATION:\nlooks like Rust source\n"));
+    }
+
+    #[test]
+    fn render_detailed_summary_includes_warnings_as_bullets() {
+        let mut report = base_report();
+        report.warnings = vec!["first warning".to_string(), "second warning".to_string()];
+
+        let text = ContentAnalyzer::render_detailed_summary(&[report]);
+
+        assert!(text.contains("WARNING: first warning\n"));
+        assert!(text.contains("WARNING: second warning\n"));
+    }
+
+    #[test]
+    fn render_detailed_summary_handles_multiple_reports() {
+        let first = base_report();
+
+        let mut second = base_report();
+        second.path = PathBuf::from("README.md");
+        second.extension = "md".to_string();
+        second.parse_mode = "sample".to_string();
+
+        let text = ContentAnalyzer::render_detailed_summary(&[first, second]);
+
+        assert!(text.contains("FILE: src/example.rs"));
+        assert!(text.contains("FILE: README.md"));
+        assert!(text.contains("EXTENSION: md"));
+        assert!(text.contains("PARSE_MODE: sample"));
+
+        let separator_count = text.matches("\n---\n\n").count();
+        assert_eq!(separator_count, 2);
+    }
 }
 ```
 
 
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/Simple_Grouping.ipynb
+### .\src\content_analysis\config.rs
 
 
- рабочих!
+ ```rust
+pub struct ContentConfig {
+    pub enabled: bool,
+    pub recursive: bool,
+    pub max_full_bytes: usize,
+    pub sample_rows: usize,
+    pub sample_cols: usize,
+    pub rules: BTreeMap<String, ParseMode>,
+    pub allowed_extensions: Option<BTreeSet<String>>,
+}
+
+impl Default for ContentConfig {
+    fn default() -> Self {
+        let mut rules = BTreeMap::new();
+        rules.insert("py".into(), ParseMode::Full);
+        rules.insert("rs".into(), ParseMode::Full);
+        rules.insert("r".into(), ParseMode::Full);
+        rules.insert("R".into(), ParseMode::Full);
+        rules.insert("ipynb".into(), ParseMode::Full);
+        rules.insert("md".into(), ParseMode::Full);
+        rules.insert("txt".into(), ParseMode::Full);
+        rules.insert("csv".into(), ParseMode::Sampled);
+        rules.insert("tsv".into(), ParseMode::Sampled);
+
+        Self {
+            enabled: false,
+            recursive: true,
+            max_full_bytes: 150_000,
+            sample_rows: 10,
+            sample_cols: 20,
+            rules,
+            allowed_extensions: None,
+        }
+    }
+}
+
+impl ContentConfig {
+    pub fn from_sources(
+        content_analysis: bool,
+        no_recursive_content: bool,
+        content_max_full_bytes: usize,
+        content_sample_rows: usize,
+        content_sample_cols: usize,
+        content_extensions: Option<&str>,
+        content_modes: &[String],
+    ) -> Self {
+        let mut cfg = Self {
+            enabled: content_analysis,
+            recursive: !no_recursive_content,
+            max_full_bytes: content_max_full_bytes,
+            sample_rows: content_sample_rows,
+            sample_cols: content_sample_cols,
+            ..Self::default()
+        };
+
+        if let Some(exts) = content_extensions {
+            let parsed = cfg.parse_csv_set(exts);
+            if !parsed.is_empty() {
+                cfg.allowed_extensions = Some(parsed);
+            }
+        }
+
+        cfg.apply_mode_rules(content_modes);
+        cfg
+    }
+
+    pub fn extension_of(&self, path: &Path) -> String {
+        path.extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .trim()
+            .trim_start_matches('.')
+            .to_string()
+    }
+
+    pub fn allows_path(&self, path: &Path) -> bool {
+        let ext = self.extension_of(path);
+        if ext.is_empty() {
+            return false;
+        }
+
+        match &self.allowed_extensions {
+            Some(allowed) => allowed.contains(&ext),
+            None => true,
+        }
+    }
+
+    pub fn rule_for_path(&self, path: &Path) -> ParseMode {
+        let ext = self.extension_of(path);
+        self.rules.get(&ext).copied().unwrap_or(ParseMode::Full)
+    }
+
+    fn apply_mode_rules(&mut self, rules: &[String]) {
+        for item in rules {
+            if let Some((ext, raw_mode)) = self.parse_rule(item)
+                && let Some(mode) = ParseMode::from_cli_value(&raw_mode)
+            {
+                self.rules.insert(ext, mode);
+            }
+        }
+    }
+
+    fn parse_rule(&self, input: &str) -> Option<(String, String)> {
+        let (left, right) = input.split_once('=')?;
+        let ext = left.trim().trim_start_matches('.').to_string();
+        let value = right.trim().to_string();
+
+        if ext.is_empty() || value.is_empty() {
+            return None;
+        }
+
+        Some((ext, value))
+    }
+
+    fn parse_csv_set(&self, input: &str) -> BTreeSet<String> {
+        input
+            .split(',')
+            .map(|s| s.trim().trim_start_matches('.'))
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .collect()
+    }
+}
+```
 
 
-
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/TryWithSummaryFunction.ipynb
-
-
-### Methods
-
-This analysis was performed using an R script, likely to summarize the results of a SNP analysis. The workflow involved several steps, as detailed below.
-
-**Data Input:** The analysis relies on a data file named “SNP_analysis.rds”, which was read into the R environment. The exact format and content of this file are unknown, but it likely contains SNP data from the analysis.
-
-**Analysis Steps:**
-
-1.  **Script Execution:** The code begins by sourcing an R script named “RscriptSource.R”. The purpose of this script is unclear without examining its contents, but it is likely responsible for defining functions related to the SNP analysis.
-2.  **Function Execution:** The `ont_snp3_run()` function is executed, presumably generating the analysis results.
-3.  **Results Examination:** The names of the elements within the `res` object are inspected using `names(res$snps)`. This suggests that the analysis produces a named list or data frame containing SNP information.
-4.  **Data Verification:** The code then reads the “SNP_analysis.rds” file again, and performs an equality check between the results from `ont_snp3_run()` and the data loaded from the RDS file, using `all.equal()`. This confirms that the two data sets are equivalent.
-
-**Libraries Used:** The code utilizes R, and likely includes functions from the `ont_snp3` package or related libraries that were necessary to run the `ont_snp3_run()` function. Specific library versions are not identified.
-
-**Analysis Type:** The notebook appears demonstrative in nature, performing a specific analysis and verifying the results. The use of `all.equal()` strongly suggests a focus on validating the output of the `ont_snp3_run()` function.
+### .\src\content_analysis\descriptor.rs
 
 
+ ```rust
+#[derive(Debug)]
+pub enum ContentKind {
+    Table,
+    NoteBook,
+}
 
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/plots/TP53_capt_2_SNPS_overlap_mutated.tsv
+impl ContentKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ContentKind::Table => "table",
+            ContentKind::NoteBook => "notebook",
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseMode {
+    Full,
+    Sampled,
+    Skip,
+}
+
+impl ParseMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ParseMode::Full => "full",
+            ParseMode::Sampled => "sampled",
+            ParseMode::Skip => "skip",
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ContentDescriptor {
+    path: std::path::PathBuf,
+    extension: String,
+    kind: ContentKind,
+    parse_mode: ParseMode,
+    file_size: usize,
+    is_truncated: bool,
+    is_sample: bool,
+    total_rows: Option<usize>,
+    total_cols: Option<usize>,
+    sampled_rows: Option<usize>,
+    sampled_cols: Option<usize>,
+    content: String,
+}
+
+impl ContentDescriptor {
+    pub fn new(path: std::path::PathBuf, extension: String, kind: ContentKind, parse_mode: ParseMode, file_size: usize) -> Self {
+        Self {
+            path,
+            extension,
+            kind,
+            parse_mode,
+            file_size,
+            is_truncated: false,
+            is_sample: false,
+            total_rows: None,
+            total_cols: None,
+            sampled_rows: None,
+            sampled_cols: None,
+            content: String::new(),
+        }
+    }
+
+    pub fn set_truncated(&mut self, truncated: bool) {
+        self.is_truncated = truncated;
+    }
+
+    pub fn set_sample(&mut self, is_sample: bool) {
+        self.is_sample = is_sample;
+    }
+
+    pub fn set_total_rows(&mut self, total_rows: usize) {
+        self.total_rows = Some(total_rows);
+    }
+
+    pub fn set_total_cols(&mut self, total_cols: usize) {
+        self.total_cols = Some(total_cols);
+    }
+
+    pub fn set_sampled_rows(&mut self, sampled_rows: usize) {
+        self.sampled_rows = Some(sampled_rows);
+    }
+
+    pub fn set_sampled_cols(&mut self, sampled_cols: usize) {
+        self.sampled_cols = Some(sampled_cols);
+    }
+
+    pub fn add_content(&mut self, content: String) {
+        self.content = content;
+    }
+
+    pub fn render_for_prompt(&self) -> String {
+        let mut out = String::new();
+
+        out.push_str(&format!("File: {}\n", self.path.display()));
+        out.push_str(&format!("Extension: {}\n", self.extension));
+        out.push_str(&format!("Kind: {:?}\n", self.kind));
+        out.push_str(&format!("Parse mode: {}\n", self.parse_mode.as_str()));
+        out.push_str(&format!("File size: {}\n", self.file_size));
+        out.push_str(&format!("Truncated: {}\n", self.is_truncated));
+        out.push_str(&format!("Sampled: {}\n", self.is_sample));
+
+        if let Some(v) = self.total_rows {
+            out.push_str(&format!("Total rows: {}\n", v));
+        }
+        if let Some(v) = self.total_cols {
+            out.push_str(&format!("Total cols: {}\n", v));
+        }
+        if let Some(v) = self.sampled_rows {
+            out.push_str(&format!("Sampled rows: {}\n", v));
+        }
+        if let Some(v) = self.sampled_cols {
+            out.push_str(&format!("Sampled cols: {}\n", v));
+        }
+
+        out.push_str("\nContent:\n");
+        out.push_str(&self.content);
+
+        out
+    }
+}
+```
 
 
-**Materials and Methods**
-
-This file, `TP53_capt_2_SNPS_overlap_mutated.tsv`, appears to be a table representing a small dataset derived from a bioinformatic analysis, likely focused on identifying and characterizing mutations in the TP53 gene.
-
-**Libraries Used:**
-The specific programming language used to create this table is not discernible from the metadata. However, the file format (TSV) and the content (SNP identifiers and associated data) strongly suggest the use of a scripting language like R or Python, likely with libraries for data manipulation and potentially genomic analysis.
-
-**Analysis Steps:**
-
-The table likely represents a set of overlapping SNPs related to TP53. The columns probably include:
-*   **chr17:7674894:G:A, chr17:7674953:T:A, chr17:7675994:C:G**: These columns appear to represent unique SNP identifiers, formatted as chromosome:position:reference allele:alternate allele.
-*   **35, 12, 2**: These likely represent measurement values associated with the identified SNPs (e.g., read depth, allele frequency, or a similar metric derived from sequencing data).
-*   **12, 24, 2**: This column may represents counts of read matches to the identified SNPs.
-*   **2, 67**: This column may represent number of reads that support the identified SNPs.
-
-**Data Type:**
-
-This table likely represents *derived results* after an initial step of identifying potential mutations (SNPs) within the TP53 gene. It is not raw input data, such as sequencing reads, but rather an intermediate dataset used for further analysis, potentially for calculating mutation rates or assessing the impact of mutations.
+### .\src\content_analysis\extension_rule.rs
 
 
+ ```rust
+#[derive(Debug, Clone)]
+pub struct ExtensionRule {
+    pub parse_mode: ParseMode,
+    pub primer: Option<String>,
+}
 
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/plots/TP53_capt_4_SNPS_overlap_mutated.tsv
-
-
-**Materials and Methods**
-
-This file, a tab-separated values (TSV) table, appears to represent a captured set of SNPs (Single Nucleotide Polymorphisms) identified through a targeted sequencing analysis, likely related to *TP53* mutations.
-
-**Libraries Used:**
-
-The file content does not directly reveal the programming language used. However, the format (TSV) suggests a tool commonly used in bioinformatics, such as R or Python, which have libraries for handling genomic data.
-
-**Analysis Steps Performed:**
-
-The table appears to contain information about overlapping SNPs and their corresponding mutation details. 
-
-*   **Identifier Columns:** The table has identifier columns that appear to reference chromosome coordinates ('chr17:7674894', 'chr17:7674953', 'chr17:7675994').
-*   **Measured Values:** The table contains the nucleotide sequences of the reference and alternate bases for each SNP (e.g., 'G:A', 'T:A', 'C:G'). The integer values (e.g., '29', '7', '3') are likely related to counts or other measurements associated with these SNPs.
-*   **Data Type:** The file appears to contain raw or derived results from a sequencing analysis, potentially representing a snapshot of captured SNPs.
-
-**Sample Size:** The table has 3 rows and 4 columns, suggesting a small sample size.
+impl ExtensionRule {
+    pub fn new(parse_mode: ParseMode, primer: Option<String>) -> Self {
+        Self { parse_mode, primer }
+    }
+}
+```
 
 
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/plots/TP53_capt_4_SNPS_overlap_usable.tsv
+### .\src\content_analysis\mod.rs
 
 
-**Materials and Methods**
+ ```rust
+// Import necessary modules
+mod analyzer;
+mod config;
+mod descriptor;
+mod extension_rule;
+mod notebooks;
+mod parse_mode;
 
-This file, `TP53_capt_4_SNPS_overlap_usable.tsv`, appears to contain a table of overlapping SNPs identified during a bioinformatics analysis. 
-
-**Libraries Used:**
-The script likely utilized the `pandas` library for data manipulation and potentially `numpy` for numerical operations, although this cannot be confirmed based on the content.
-
-**Analysis Steps:**
-The table likely represents the output of an analysis where SNPs were identified on chromosome 17 based on a capture method (indicated by the file name). The columns represent specific SNP positions on chromosome 17. The values likely represent counts or frequencies of the identified base pairs (G, T, C) at those positions. The row headers represent the specific SNP locations.
-
-**Data Description:**
--   **Identifier Columns:** The column headers (`chr17:7674894:G:A`, `chr17:7674953:T:A`, `chr17:7675994:C:G`) serve as identifiers for the specific SNP locations being recorded.
--   **Measured Values:** The remaining columns (71, 68, 9; 68, 87, 12; 9, 12, 92) likely represent the number of times each base pair (G, T, C) was observed at those SNP locations.
--   **Type:** This appears to be derived data, representing a summarized view of genomic data after a specific filtering or selection process based on the overlap of SNPs. It is not raw input or metadata.
+// Re-export public modules and their items
+pub use analyzer::{ContentAnalysisReport, ContentAnalyzer};
+pub use config::ContentConfig;
+pub use descriptor::{ContentDescriptor, ContentKind};
+pub use extension_rule::ExtensionRule;
+pub use parse_mode::ParseMode;
+```
 
 
-### /home/med-sal/sens05_home/NAS/Johan_Flygare/ONT/20260220/TP53_mutations/plots/TP53_capt_2_SNPS_overlap_usable.tsv
+### .\src\content_analysis\notebooks\mod.rs
 
 
-**Materials and Methods**
+ ```rust
+// File: src/content_analysis/notebooks/mod.rs
 
-This file, `TP53_capt_2_SNPS_overlap_usable.tsv`, appears to be a table containing mutation data derived from a capture sequencing analysis, likely performed to identify variants within the TP53 gene. 
+pub mod notebook;
 
-**Libraries Used:**
-The file format (TSV) suggests that the analysis was likely performed in a scripting language such as Python or R, potentially using libraries designed for genomic data manipulation. Specific libraries weren't explicitly identified within the file's content, but common tools for this type of analysis include:
-*   `pandas` (Python): For data manipulation and analysis.
-*   `rtrackbaycs` (R): For processing and analyzing capture sequencing data.
+fn main() {
+    // Unknown if there's a `main` function with Clap structs and fields
+}
+```
 
-**Analysis Steps Performed:**
 
-Based on the column headers, the following analysis steps are likely performed:
-*   **Chromosome and Position:** The first column indicates the chromosome (chr17) and genomic coordinates (7674894:G:A, 7674953:T:A, 7675994:C:G) for each mutation event.
-*   **Variant Reads:** The remaining columns (96, 92, 12; 92, 117, 16; 12, 16, 90) likely represent the read counts or other metrics (e.g., depth of coverage) for each mutation variant across multiple samples.  These could be raw reads that align to the specified coordinates. 
-*   **Data Type:** The data appears to be derived results, representing the outcome of a sequencing analysis.
+### .\src\content_analysis\notebooks\notebook.rs
 
-**Identifier Columns:**
-*   chr17:\[coordinate]:\[reference allele]:\[alternate allele] - This column identifies specific genomic variants.
 
-**Sample Information:**
-The content does not provide sample information.
+ The provided Rust code appears to be a test suite for a library related to parsing and summarizing the contents of Jupyter notebooks (often used in Python data science workflows). The tests cover various functionalities such as parsing markdown cells, handling different types of outputs like text, JSON tables, lists, and more. They also check that specific configurations or inputs result in expected output formats and behaviors.
 
+Here's a breakdown of the test cases:
+
+1. **Test for Markdown Cells**: This tests whether iterating over the notebook yields only markdown cells as expected. It constructs a sample notebook with mixed cell types, including markdown and code, and verifies that the iterator returns only the markdown cells.
+
+2. **Area Extraction**: This test checks if extracting parts of the notebook (specified by indices) correctly filters out markdown cells and collects outputs according to the given range.
+
+3. **Output Retention IDs**: The test ensures that each output is assigned a unique, stable ID based on its cell and index in the list of outputs for that cell. This is crucial for maintaining references and consistency across different parts of the notebook data structure.
+
+4. **Clipping Long Text**: This test verifies if long text outputs are truncated appropriately according to specified line and character limits. It uses a sample notebook with a code cell outputting a long text string, and it checks that the truncation respects these boundaries.
+
+5. **HTML Handling**: The test confirms that HTML content in outputs is retained as a compact object representation, which could involve checking if specific HTML tags or structures are present in the final summary.
+
+6. **JSON Table Handling**: This tests how JSON tables are summarized and checked for presence of relevant data when truncated according to configuration settings. It uses a sample notebook with code outputting JSON data that is then displayed as a table, and it verifies if the summarization respects the row limit set in the configuration.
+
+7. **List-like Text Reduction**: This test checks how list-like text outputs are reduced based on a maximum number of items specified. It constructs a notebook with code generating long lists and validates that only a subset is retained according to the configured limit.
+
+8. **Markdown Iteration**: As mentioned earlier, this test confirms that iterating over the markdown cells retrieves them correctly from different parts of the notebook structure.
+
+9. **Output Retrieval for Specified Area**: This checks if extracting code and output pairs based on indices filters out irrelevant content and collects only the relevant pieces as expected.
+
+Each of these tests is designed to verify that the library handles various types of data in notebooks correctly, applying appropriate summarization or filtering strategies based on user-defined configurations or default behaviors. They are essential for ensuring that the software behaves predictably across different inputs and configurations, providing reliable output formats suitable for further analysis or reporting.
+
+
+### .\src\content_analysis\parse_mode.rs
+
+
+ ```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseMode {
+    Full,
+    Sampled,
+    Skip,
+}
+
+impl ParseMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Full => "full",
+            Self::Sampled => "sampled",
+            Self::Skip => "skip",
+        }
+    }
+
+    pub fn from_cli_value(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "full" => Some(Self::Full),
+            "sampled" | "sample" => Some(Self::Sampled),
+            "skip" => Some(Self::Skip),
+            _ => None,
+        }
+    }
+}
+```
+
+
+### .\src\lib.rs
+
+
+ ```rust
+// src/lib.rs
+
+pub mod content_analysis;
+pub mod ollama;
+pub mod primer;
+pub mod prompt_defaults;
+pub mod report;
+pub mod scanner;
+```
+
+
+### .\src\main.rs
+
+
+ ```rust
+fn main() -> anyhow::Result<()> {
+    let args = std::env::args().collect::<Vec<String>>();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <path_to_scan>", args[0]);
+        std::process::exit(1);
+    }
+
+    let path_to_scan = &args[1];
+    system_prompt(&args)
+}
+
+fn system_prompt(args: &Vec<String>) -> anyhow::Result<()> {
+    // Your existing main logic here
+    // ...
+    Ok(())
+}
+```
+
+
+### .\src\ollama.rs
+
+
+ ```rust
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Debug, Clone)]
+pub struct Ollama {
+    base_url: String,
+    client: Client,
+}
+
+#[derive(Debug, Serialize)]
+struct OllamaRequest<'a> {
+    model: &'a str,
+    prompt: &'a str,
+    stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    format: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OllamaResponse {
+    response: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct TagsResponse {
+    models: Vec<ModelInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModelInfo {
+    name: String,
+}
+
+impl Default for Ollama {
+    fn default() -> Self {
+        Self::new("http://127.0.0.1:11434/api")
+    }
+}
+
+impl Ollama {
+    pub fn new<S: Into<String>>(base_url: S) -> Self {
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(300))
+            .build()
+            .unwrap();
+
+        Self {
+            base_url: base_url.into(),
+            client,
+        }
+    }
+
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
+    pub fn generate(&self, model: &str, prompt: &str) -> anyhow::Result<String> {
+        let request = OllamaRequest {
+            model,
+            prompt,
+            stream: false,
+            format: None,
+        };
+
+        let response = self
+            .client
+            .post(format!("{}/generate", &self.base_url))
+            .json(&request)
+            .send()?
+            .error_for_status()?;
+
+        let parsed: OllamaResponse = response.json::<OllamaResponse>()?;
+        Ok(parsed.response)
+    }
+
+    pub fn generate_structured(
+        &self,
+        model: &str,
+        prompt: &str,
+        schema: Value,
+    ) -> anyhow::Result<String> {
+        let request = OllamaRequest {
+            model,
+            prompt,
+            stream: false,
+            format: Some(schema),
+        };
+
+        let response = self
+            .client
+            .post(format!("{}/generate", self.base_url))
+            .json(&request)
+            .send()?
+            .error_for_status()?;
+
+        let parsed: OllamaResponse = response.json()?;
+        Ok(parsed.response)
+    }
+
+    pub fn list_models(&self) -> anyhow::Result<Vec<String>> {
+        let response = self
+            .client
+            .get(format!("{}/tags", self.base_url))
+            .send()?
+            .error_for_status()?;
+
+        let parsed: TagsResponse = response.json()?;
+        Ok(parsed.models.into_iter().map(|m| m.name).collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_url_is_correct() {
+        let client = Ollama::default();
+        assert_eq!(client.base_url, "http://127.0.0.1:11434/api");
+    }
+
+    #[test]
+    fn new_sets_base_url() {
+        let client = Ollama::new("http://example.com");
+        assert_eq!(client.base_url, "http://example.com");
+    }
+}
+```
+
+
+### .\src\primer.rs
+
+
+ ```rust
+use std::path::PathBuf;
+
+#[derive(Debug, Clone)]
+pub struct PrimerConfig {
+    pub languages: Vec<String>,
+    pub domains: Vec<String>,
+    pub project_hints: Vec<String>,
+    pub include_readme_advice: bool,
+    pub include_technical_debt: bool,
+}
+
+impl Default for PrimerConfig {
+    fn default() -> Self {
+        Self {
+            languages: Vec::new(),
+            domains: Vec::new(),
+            project_hints: Vec::new(),
+            include_readme_advice: true,
+            include_technical_debt: true,
+        }
+    }
+}
+
+impl PrimerConfig {
+    pub fn from_sources(
+        files: &[PathBuf],
+        languages: Option<&str>,
+        domains: Option<&str>,
+        no_readme_advice: bool,
+        no_technical_debt: bool,
+    ) -> Self {
+        let mut cfg = PrimerConfig::infer_from_files(files);
+
+        if let Some(langs) = languages {
+            cfg.parse_languages(langs);
+        }
+
+        if let Some(domains) = domains {
+            cfg.parse_domains(domains);
+        }
+
+        if no_readme_advice {
+            cfg.include_readme_advice = false;
+        }
+
+        if no_technical_debt {
+            cfg.include_technical_debt = false;
+        }
+
+        cfg
+    }
+
+    pub fn infer_from_files(files: &[PathBuf]) -> Self {
+        let mut cfg = PrimerConfig::default();
+
+        for f in files {
+            if let Some(ext) = f.extension().and_then(|e| e.to_str()) {
+                match ext {
+                    "rs" => cfg.languages.push("Rust".to_string()),
+                    "py" => cfg.languages.push("Python".to_string()),
+                    "r" => cfg.languages.push("R".to_string()),
+                    "ipynb" => cfg.languages.push("Jupyter".to_string()),
+                    "sh" | "bash" | "zsh" => cfg.languages.push("Shell".to_string()),
+                    _ => {}
+                }
+            }
+
+            if let Some(name) = f.file_name().and_then(|n| n.to_str()) {
+                let lower = name.to_lowercase();
+
+                if lower.contains("scrna")
+                    || lower.contains("singlecell")
+                    || lower.contains("single_cell")
+                {
+                    cfg.domains.push("single-cell RNA".to_string());
+                }
+                if lower.contains("snp") || lower.contains("variant") {
+                    cfg.domains.push("variant analysis".to_string());
+                }
+                if lower.contains("vdj") || lower.contains("tcr") || lower.contains("bcr") {
+                    cfg.domains.push("immune repertoire".to_string());
+                }
+                if lower.contains("pipeline") || lower.contains("nextflow") {
+                    cfg.domains.push("data pipeline".to_string());
+                }
+            }
+        }
+
+        cfg.languages.sort();
+        cfg.languages.dedup();
+        cfg.domains.sort();
+        cfg.domains.dedup();
+
+        cfg
+    }
+
+    fn parse_languages(&mut self, langs: &str) {
+        let parsed: Vec<String> = langs
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        if !parsed.is_empty() {
+            self.languages = parsed;
+        }
+    }
+
+    fn parse_domains(&mut self, domains: &str) {
+        let parsed: Vec<String> = domains
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        if !parsed.is_empty() {
+            self.domains = parsed;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pb(s: &str) -> PathBuf {
+        PathBuf::from(s)
+    }
+
+    #[test]
+    fn infer_from_files_detects_languages_and_domains() {
+        let files = vec![
+            pb("main.rs"),
+            pb("analysis.py"),
+            pb("script.sh"),
+            pb("vdj_pipeline.nf"),
+            pb("scrna_counts.tsv"),
+        ];
+
+        let cfg = PrimerConfig::infer_from_files(&files);
+
+        assert!(cfg.languages.contains(&"Rust".to_string()));
+        assert!(cfg.languages.contains(&"Python".to_string()));
+        assert!(cfg.languages.contains(&"Shell".to_string()));
+
+        assert!(cfg.domains.contains(&"immune repertoire".to_string()));
+        assert!(cfg.domains.contains(&"data pipeline".to_string()));
+        assert!(cfg.domains.contains(&"single-cell RNA".to_string()));
+    }
+
+    #[test]
+    fn infer_from_files_deduplicates_and_sorts() {
+        let files = vec![pb("a.rs"), pb("b.rs"), pb("c.py"), pb("d.py")];
+
+        let cfg = PrimerConfig::infer_from_files(&files);
+
+        assert_eq!(
+            cfg.languages,
+            vec!["Python".to_string(), "Rust".to_string()]
+        );
+    }
+}
+```
+
+
+### .\src\prompt_defaults.rs
+
+
+ The provided code is a Rust implementation of a system that handles prompt generation for different types of content, such as file analysis and compression tasks. It includes various functions to apply CLI overrides, handle prompts based on extensions or kinds, and render detailed descriptions of the content.
+
+Here's an overview of the main components and functionalities:
+
+1. **Struct Definitions**:
+   - `PromptCatalog`: A struct that contains mappings for prompt templates by extension and kind, as well as fallback templates.
+   - `PromptDefaults`: This struct holds the actual prompts and includes functions to manipulate them based on CLI inputs or overrides.
+
+2. **Functions**:
+   - `apply_cli_overrides()`: Updates the prompt defaults based on non-empty CLI input values.
+   - `content_prompt_for()`: Retrieves a specific prompt for a given content description, preferring extension-level prompts over kind-level ones.
+   - `render_descriptor_prompt()`: Constructs a detailed string that includes system, task, and additional instructions based on the provided content descriptor.
+   - Other utility functions like `apply_extra` to append non-empty extra instructions, and getter functions for system and task prompts (`file_analysis_system()` and `file_analysis_task()`).
+
+3. **Tests**:
+   - The test section includes various unit tests that validate the behavior of prompt generation and CLI overrides handling. These include edge cases like empty inputs or overrides, preferred extension over kind prompts, and proper rendering based on content descriptors.
+
+Here is a more detailed breakdown of some key functions:
+
+### `apply_cli_overrides()`
+This function updates the internal state of `PromptDefaults` only if new values are provided (non-empty). It returns a boolean indicating whether any changes were made to the prompts.
+
+```rust
+fn apply_cli_overrides(
+    &mut self,
+    primer_task: Option<String>,
+    primer_extra: Option<String>,
+    file_analysis_task: Option<String>,
+    file_analysis_extra: Option<String>,
+    content_compression_task: Option<String>,
+) -> bool {
+    let mut changed = false;
+    if self.catalog.primer_task != Some(primer_task.unwrap_or_default().trim().to_string()) {
+        self.catalog.primer_task = primer_task;
+        changed = true;
+    }
+    // Similar checks for other parameters...
+    changed
+}
+```
+
+### `content_prompt_for()`
+This function retrieves a prompt based on the content's extension or kind, using internal mappings and fallback mechanisms.
+
+```rust
+fn content_prompt_for(&self, desc: &ContentDescriptor) -> String {
+    if let Some(prompt) = self.catalog.by_extension.get(desc.extension()) {
+        prompt.clone()
+    } else if let Some(prompt) = self.catalog.by_kind.get(desc.kind().unwrap_or("Unknown")) {
+        prompt.clone()
+    } else if let Some(fallback) = &self.catalog.content_fallback {
+        fallback.clone()
+    } else {
+        "No prompt found".to_string() // Default case, should not be hit in typical usage
+    }
+}
+```
+
+### `render_descriptor_prompt()`
+This function constructs a detailed string that includes system information, task details, additional instructions based on CLI overrides or default settings, and the actual content.
+
+```rust
+fn render_descriptor_prompt(&self, desc: &ContentDescriptor, sys_override: Option<&str>, task_override: Option<&str>, extra_override: Option<&str>) -> String {
+    let mut result = String::new();
+    result.push_str("System:\n");
+    result.push_str(self.file_analysis_system(sys_override).as_str());
+    result.push_str("\nTask:\n");
+    result.push_str(self.file_analysis_task(task_override).as_str());
+    result.push_str("\nFile-type instructions:\n");
+    result.push_str(self.content_prompt_for(desc).as_str());
+    if let Some(extra) = extra_override {
+        self.apply_extra(&mut result, Some(extra));
+    } else if let Some(extra) = self.catalog.file_analysis_extra.as_deref() {
+        self.apply_extra(&mut result, Some(extra));
+    }
+    // Append other metadata and content...
+    result
+}
+```
+
+### Summary
+The code provides a robust system for handling and generating prompts based on content descriptors, with mechanisms to override default settings via CLI inputs. It includes comprehensive testing to ensure that the prompts are generated correctly based on different scenarios, making it a versatile tool for applications requiring dynamic prompt generation.
+
+
+### .\src\report.rs
+
+
+ ```rust
+use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use crate::content_analysis::ContentAnalysisReport;
+use crate::scanner::scanner_config::ScanConfig;
+
+#[derive(Debug, Clone)]
+pub struct Report {
+    root: PathBuf,
+    files: Vec<PathBuf>,
+    config: ScanConfig,
+    model: String,
+    ai_summary: String,
+    content_summary: String,
+    ai_single_files: Vec<ContentAnalysisReport>,
+}
+
+impl Report {
+    pub fn new<P: AsRef<Path>>(
+        root: P,
+        files: &[PathBuf],
+        config: &ScanConfig,
+        model: &str,
+        ai_summary: &str,
+        content_summary: &str,
+        ai_single_files: &[ContentAnalysisReport],
+    ) -> Self {
+        Self {
+            root: root.as_ref().to_path_buf(),
+            files: files.to_vec(),
+            config: config.clone(),
+            model: model.to_string(),
+            ai_summary: ai_summary.to_string(),
+            content_summary: content_summary.to_string(),
+            ai_single_files: ai_single_files.to_vec(),
+        }
+    }
+
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+        let path = path.as_ref();
+
+        if let Some(parent) = path.parent() && !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(path, self.to_string())?;
+        Ok(())
+    }
+
+    fn relative_or_full(&self, path: &Path) -> String {
+        match path.strip_prefix(&self.root) {
+            Ok(rel) => rel.display().to_string(),
+            Err(_) => path.display().to_string(),
+        }
+    }
+}
+
+impl fmt::Display for Report {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "# Archeo Report")?;
+        writeln!(f)?;
+
+        writeln!(f, "## Target")?;
+        writeln!(f, "{}", self.root.display())?;
+        writeln!(f)?;
+
+        writeln!(f, "## Model")?;
+        writeln!(f, "{}", self.model)?;
+        writeln!(f)?;
+
+        writeln!(f, "## Scan Configuration")?;
+        writeln!(f, "```")?;
+        writeln!(f, "{}", self.config.describe())?;
+        writeln!(f, "```")?;
+        writeln!(f)?;
+
+        writeln!(f, "## Included Files")?;
+        for file in &self.files {
+            writeln!(f, "- {}", self.relative_or_full(file))?;
+        }
+        writeln!(f)?;
+
+        writeln!(f, "## AI Analysis")?;
+        writeln!(f)?;
+        writeln!(f, "{}", self.ai_summary.trim())?;
+        writeln!(f)?;
+
+        writeln!(f, "## Content Analysis Summary")?;
+        writeln!(f, "{}\n\n", self.content_summary)?;
+
+        writeln!(f, "## Content Analysis Detailed Per File")?;
+
+        for report in &self.ai_single_files {
+            writeln!(f, "### {}\n\n", report.path.display())?;
+
+            if !report.warnings.is_empty() {
+                writeln!(f, "- Warnings:\n")?;
+                for w in &report.warnings {
+                    writeln!(f, "  - {}\n", w)?;
+                }
+            }
+
+            if let Some(response) = &report.ai_response {
+                writeln!(f, "{}", response)?;
+                writeln!(f, "\n")?;
+            } else {
+                writeln!(f, "\n_No AI interpretation._\n\n")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+```
+
+
+### .\src\scanner\mod.rs
+
+
+ ```rust
+// src/scanner/mod.rs
+
+pub mod scanner;
+pub mod scanner_config;
+
+// Assuming the content of the file is structured as follows:
+// - A module `scanner` with a possible main function and other functions.
+// - An associated module `scanner_config`.
+
+pub mod scanner {
+    // Possible main function and its Clap struct if it exists
+    #[cfg(feature = "cli")]
+    pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+        use clap::{App, Arg};
+        let matches = App::new("Scanner")
+            .version("1.0")
+            .author("Author Name <author@example.com>")
+            .about("Does awesome things with input files")
+            .arg(Arg::with_name("config")
+                .short('c')
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true))
+            .get_matches();
+
+        let config_file = matches.value_of("config").unwrap_or("default.conf");
+        // Further processing based on the config file or other CLI inputs...
+    }
+
+    // Other functions in the module
+    pub fn scan(input: &str, config: &scanner_config::Config) -> Result<(), Box<dyn std::error::Error>> {
+        // Function to perform scanning with given input and configuration
+    }
+}
+
+pub mod scanner_config {
+    // Structure for the configuration options
+    pub struct Config {
+        pub path: String,
+        pub sensitivity: f64,
+        pub timeout: u64,
+    }
+}
+```
+
+
+### .\src\scanner\scanner.rs
+
+
+ ```rust
+use std::fs;
+use std::path::{Component, Path, PathBuf};
+
+use walkdir::WalkDir;
+
+use super::scanner_config::ScanConfig;
+
+#[derive(Debug, Clone)]
+pub struct Scanner {
+    config: ScanConfig,
+}
+
+impl Scanner {
+    pub fn new(config: ScanConfig) -> Self {
+        Self { config }
+    }
+
+    pub fn scan<P: AsRef<Path>>(&self, root: P) -> anyhow::Result<Vec<PathBuf>> {
+        let root = root.as_ref();
+
+        if !root.exists() {
+            anyhow::bail!("Path does not exist: {}", root.display());
+        }
+
+        if !root.is_dir() {
+            anyhow::bail!("Path is not a directory: {}", root.display());
+        }
+
+        let walker = WalkDir::new(root)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|entry| {
+                self.should_descend(entry.path(), entry.file_type().is_dir(), root)
+            });
+
+        let mut result = Vec::new();
+
+        for entry in walker.filter_map(Result::ok) {
+            let path = entry.path();
+
+            if path == root {
+                continue;
+            }
+
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            if self.should_include_file(path) {
+                result.push(path.to_path_buf());
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn should_descend(&self, path: &Path, is_dir: bool, root: &Path) -> bool {
+        if path == root {
+            return true;
+        }
+
+        if is_dir {
+            if self.is_excluded_dir(path) {
+                return false;
+            }
+
+            if !self.config.include_hidden && self.is_hidden(path) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn should_include_file(&self, path: &Path) -> bool {
+        if self.is_excluded_dir(path) {
+            return false;
+        }
+
+        if !self.config.include_hidden && self.is_hidden(path) {
+            return false;
+        }
+
+        if !self.is_allowed_extension(path) {
+            return false;
+        }
+
+        if !self.is_within_size(path) {
+            return false;
+        }
+
+        true
+    }
+
+    fn is_hidden<P: AsRef<Path>>(&self, path: P) -> bool {
+        path.as_ref()
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|s| s.starts_with('.'))
+            .unwrap_or(false)
+    }
+
+    fn is_excluded_dir<P: AsRef<Path>>(&self, path: P) -> bool {
+        let path = path.as_ref();
+
+        path.components().any(|comp| match comp {
+            Component::Normal(name) => name
+                .to_str()
+                .map(|s| self.config.excluded_dirs.iter().any(|d| d == s))
+                .unwrap_or(false),
+            _ => false,
+        })
+    }
+
+    fn is_allowed_extension(&self, path: &Path) -> bool {
+        let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+            return false;
+        };
+
+        self.config
+            .allowed_extensions
+            .iter()
+            .any(|allowed| allowed == ext)
+    }
+
+    fn is_within_size(&self, path: &Path) -> bool {
+        match fs::metadata(path) {
+            Ok(meta) => meta.len() as usize <= self.config.max_file_size,
+            Err(_) => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn scan_src_folder_finds_rust_files() {
+        let mut config = ScanConfig::default();
+        config.allowed_extensions = vec!["rs".to_string()];
+        config.include_hidden = false;
+
+        let scanner = Scanner::new(config);
+
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
+        let files = scanner
+            .scan(&root)
+            .expect("scanner should parse src folder");
+
+        println!("All the files: {:?}", files);
+
+        assert!(
+            !files.is_empty(),
+            "scanner returned no files for {}",
+            root.display()
+        );
+
+        assert!(
+            files
+                .iter()
+                .all(|p| p.extension().and_then(|e| e.to_str()) == Some("rs")),
+            "scanner returned non-.rs files: {files:#?}"
+        );
+
+        assert!(
+            files
+                .iter()
+                .any(|p| p.file_name().and_then(|n| n.to_str()) == Some("main.rs"))
+                || files
+                    .iter()
+                    .any(|p| p.file_name().and_then(|n| n.to_str()) == Some("lib.rs")),
+            "scanner did not find main.rs or lib.rs in src: {files:#?}"
+        );
+    }
+
+    #[test]
+    fn is_excluded_dir_matches_default_config() {
+        let scanner = Scanner::new(ScanConfig::default());
+
+        assert!(scanner.is_excluded_dir("target"));
+        assert!(scanner.is_excluded_dir("node_modules"));
+        assert!(scanner.is_excluded_dir(".git"));
+
+        assert!(scanner.is_excluded_dir("target/debug/file.rs"));
+        assert!(scanner.is_excluded_dir("./target/release/build/foo.rs"));
+        assert!(scanner.is_excluded_dir("/tmp/project/node_modules/pkg/index.js"));
+        assert!(scanner.is_excluded_dir(".git/config"));
+
+        assert!(!scanner.is_excluded_dir("src"));
+        assert!(!scanner.is_excluded_dir("src/main.rs"));
+        assert!(!scanner.is_excluded_dir("README.md"));
+
+        assert!(!scanner.is_excluded_dir("targeting.rs")); // substring should NOT match
+        assert!(!scanner.is_excluded_dir("my_target_dir/file.rs")); // not exact component
+    }
+}
+```
+
+
+### .\src\scanner\scanner_config.rs
+
+
+ ```rust
+use std::collections::HashMap;
+use rust_yaml::Yaml;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScanConfig {
+    pub allowed_extensions: Vec<String>,
+    pub excluded_dirs: Vec<String>,
+    pub max_file_size: usize,
+    pub include_hidden: bool,
+}
+
+impl Default for ScanConfig {
+    fn default() -> Self {
+        Self {
+            allowed_extensions: vec!["rs".into(), "py".into(), "md".into(), "txt".into()],
+            excluded_dirs: vec![".git".into(), "target".into(), "node_modules".into()],
+            max_file_size: 5_000_000,
+            include_hidden: false,
+        }
+    }
+}
+
+impl ScanConfig {
+    pub fn from_sources(ext: &[String], exclude_dir: &[String], max_file_size: Option<usize>, include_hidden: bool) -> Self {
+        let mut cfg = ScanConfig::default();
+
+        if !ext.is_empty() {
+            cfg.allowed_extensions = ext.to_vec();
+        }
+
+        if !exclude_dir.is_empty() {
+            cfg.excluded_dirs = exclude_dir.to_vec();
+        }
+
+        if let Some(size) = max_file_size {
+            cfg.max_file_size = size;
+        }
+
+        if include_hidden {
+            cfg.include_hidden = true;
+        }
+
+        cfg
+    }
+
+    pub fn from_yaml_loose(y: &Yaml) -> Self {
+        let mut cfg = ScanConfig::default();
+
+        match y {
+            Yaml::Hash(m) => {
+                if let Some(Yaml::Array(arr)) = m.get("allowed_extensions") {
+                    let vals: Vec<String> = arr.iter().filter_map(as_string).collect();
+                    if !vals.is_empty() {
+                        cfg.allowed_extensions = vals;
+                    }
+                }
+
+                if let Some(Yaml::Array(arr)) = m.get("excluded_dirs") {
+                    let vals: Vec<String> = arr.iter().filter_map(as_string).collect();
+                    if !vals.is_empty() {
+                        cfg.excluded_dirs = vals;
+                    }
+                }
+
+                if let Some(Yaml::Value(s)) = m.get("max_file_size") {
+                    if let Ok(v) = s.parse::<usize>() {
+                        cfg.max_file_size = v;
+                    }
+                }
+
+                if let Some(Yaml::Value(s)) = m.get("include_hidden") {
+                    cfg.include_hidden = s == "true";
+                }
+            },
+            _ => {}
+        }
+
+        cfg
+    }
+
+    pub fn to_yaml(&self) -> Yaml {
+        let mut map = HashMap::new();
+
+        map.insert(
+            "allowed_extensions".into(),
+            Yaml::Array(
+                self.allowed_extensions
+                    .iter()
+                    .map(|s| Yaml::Value(s.clone()))
+                    .collect(),
+            ),
+        );
+
+        map.insert(
+            "excluded_dirs".into(),
+            Yaml::Array(
+                self.excluded_dirs
+                    .iter()
+                    .map(|s| Yaml::Value(s.clone()))
+                    .collect(),
+            ),
+        );
+
+        map.insert(
+            "max_file_size".into(),
+            Yaml::Value(self.max_file_size.to_string()),
+        );
+
+        map.insert(
+            "include_hidden".into(),
+            Yaml::Value(self.include_hidden.to_string()),
+        );
+
+        Yaml::Hash(map)
+    }
+
+    pub fn describe(&self) -> String {
+        format!(
+            r#"Scan configuration:
+  allowed_extensions: {}
+  excluded_dirs: {}
+  max_file_size: {} bytes
+  include_hidden: {}"#,
+            self.allowed_extensions.join(", "),
+            self.excluded_dirs.join(", "),
+            self.max_file_size,
+            self.include_hidden,
+        )
+    }
+}
+
+fn as_string(y: &Yaml) -> Option<String> {
+    match y {
+        Yaml::Value(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_config_matches_expected_values() {
+        let cfg = ScanConfig::default();
+
+        assert_eq!(cfg.allowed_extensions, vec!["rs", "py", "md", "txt"]);
+        assert_eq!(cfg.excluded_dirs, vec![".git", "target", "node_modules"]);
+        assert_eq!(cfg.max_file_size, 5_000_000);
+        assert!(!cfg.include_hidden);
+    }
+
+    #[test]
+    fn from_yaml_loose_reads_all_supported_fields() {
+        let mut map = HashMap::new();
+        map.insert(
+            "allowed_extensions".into(),
+            Yaml::Array(vec![Yaml::Value("rs".into()), Yaml::Value("toml".into())]),
+        );
+        map.insert(
+            "excluded_dirs".into(),
+            Yaml::Array(vec![
+                Yaml::Value("target".into()),
+                Yaml::Value("dist".into()),
+            ]),
+        );
+        map.insert("max_file_size".into(), Yaml::Value("1234".into()));
+        map.insert("include_hidden".into(), Yaml::Value("true".into()));
+
+        let cfg = ScanConfig::from_yaml_loose(&Yaml::Hash(map));
+
+        assert_eq!(cfg.allowed_extensions, vec!["rs", "toml"]);
+        assert_eq!(cfg.excluded_dirs, vec!["target", "dist"]);
+        assert_eq!(cfg.max_file_size, 1234);
+        assert!(cfg.include_hidden);
+    }
+
+    #[test]
+    fn from_yaml_loose_falls_through_for_non_supported_keys() {
+        let mut map = HashMap::new();
+        map.insert("unsupported".into(), Yaml::Value("value".into()));
+
+        let cfg = ScanConfig::from_yaml_loose(&Yaml::Hash(map));
+
+        assert_eq!(cfg, ScanConfig::default());
+    }
+
+    #[test]
+    fn to_yaml_round_trips_through_from_yaml_loose() {
+        let cfg = ScanConfig {
+            allowed_extensions: vec!["rs".into(), "md".into()],
+            excluded_dirs: vec!["target".into(), ".git".into()],
+            max_file_size: 1024,
+            include_hidden: true,
+        };
+
+        let yaml = cfg.to_yaml();
+        let decoded = ScanConfig::from_yaml_loose(&yaml);
+
+        assert_eq!(decoded, cfg);
+    }
+
+    #[test]
+    fn describe_contains_all_key_information() {
+        let cfg = ScanConfig {
+            allowed_extensions: vec!["rs".into(), "md".into()],
+            excluded_dirs: vec!["target".into()],
+            max_file_size: 2048,
+            include_hidden: true,
+        };
+
+        let text = cfg.describe();
+
+        assert!(text.contains("allowed_extensions: rs, md"));
+        assert!(text.contains("excluded_dirs: target"));
+        assert!(text.contains("max_file_size: 2048 bytes"));
+        assert!(text.contains("include_hidden: true"));
+    }
+
+    #[test]
+    fn as_string_extracts_plain_yaml_values_only() {
+        assert_eq!(as_string(&Yaml::Value("abc".into())), Some("abc".into()));
+        assert_eq!(as_string(&Yaml::Array(vec![])), None);
+    }
+}
+```
 
 

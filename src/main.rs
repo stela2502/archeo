@@ -1,4 +1,6 @@
 use clap::Parser;
+use std::path::{Path,PathBuf};
+use std::fs;
 
 use archeo::content_analysis::{ContentAnalyzer, ContentConfig};
 use archeo::ollama::Ollama;
@@ -44,6 +46,66 @@ struct Args {
     #[arg(short, long, default_value = "deepseek-coder", value_name = "MODEL")]
     model: String,
 
+    /// Ollama API base URL.
+    ///
+    /// Examples:
+    ///   --ollama-url http://127.0.0.1:11434/api
+    ///   --ollama-url http://gpu123:11434/api
+    #[arg(long, default_value = "http://127.0.0.1:11434/api", value_name = "URL")]
+    ollama_url: String,
+
+    /// -------------------------------------------------
+    /// Scan
+    /// -------------------------------------------------
+
+    // Content analysis: enable + sources
+    // -------------------------------------------------
+    /// Enable content-based file analysis.
+    ///
+    /// Without this flag, Archeo mainly relies on filenames, paths, and project
+    /// structure. With this flag, Archeo may read and analyze file contents.
+    #[arg(long)]
+    content_analysis: bool,   
+
+    /// Allowed file extension to include in the scan.
+    // -------------------------------------------------
+    /// This option is repeatable. Use it once per extension.
+    /// Extensions should usually be given without a leading dot.
+    ///
+    /// Examples:
+    ///   --ext rs
+    ///   --ext py
+    ///   --ext md
+    #[arg(long, short = 'x', value_name = "EXT")]
+    ext: Vec<String>,
+
+    /// Directory name to exclude from scanning.
+    ///
+    /// This option is repeatable. Use it once per excluded directory name.
+    /// Matching is typically done by directory name, not full path.
+    ///
+    /// Examples:
+    ///   --exclude-dir .git
+    ///   --exclude-dir target
+    ///   --exclude-dir node_modules
+    #[arg(long, value_name = "DIR")]
+    exclude_dir: Vec<String>,
+
+    /// Maximum file size in bytes allowed during scanning.
+    ///
+    /// Files larger than this limit are skipped.
+    ///
+    /// Example:
+    ///   --max-file-size 5000000
+    #[arg(long, value_name = "BYTES")]
+    max_file_size: Option<usize>,
+
+    /// Include hidden files and hidden directories.
+    ///
+    /// By default, hidden paths may be skipped.
+    #[arg(long)]
+    include_hidden: bool,
+
     /// YAML prompt catalog file to load instead of built-in defaults.
     ///
     /// This file can override primer, file-analysis, compression,
@@ -55,7 +117,68 @@ struct Args {
     prompts_file: Option<String>,
 
     // -------------------------------------------------
-    // Global prompt overrides
+    // Content analysis: scope + limits
+    // -------------------------------------------------
+    /// Restrict content analysis to a comma-separated list of extensions.
+    ///
+    /// Only matching file extensions will be considered for content-based analysis.
+    ///
+    /// Example:
+    ///   --content-extensions rs,py,md
+    #[arg(long, value_name = "EXT1,EXT2,...")]
+    content_extensions: Option<String>,
+
+    /// Disable recursive content analysis.
+    ///
+    /// When set, Archeo analyzes only the top-level files in the selected path
+    /// for content-based processing.
+    #[arg(long)]
+    no_recursive_content: bool,
+
+    /// Maximum number of bytes to read when a file is analyzed in full mode.
+    ///
+    /// Larger files may be truncated to this limit before being sent to the model.
+    ///
+    /// Example:
+    ///   --content-max-full-bytes 50000
+    #[arg(long, default_value_t = 150_000, value_name = "N")]
+    content_max_full_bytes: usize,
+
+    /// Maximum number of rows to sample from table-like files.
+    ///
+    /// Used for CSV/TSV and similar structured text inputs when sampling is enabled.
+    ///
+    /// Example:
+    ///   --content-sample-rows 20
+    #[arg(long, default_value_t = 10, value_name = "N")]
+    content_sample_rows: usize,
+
+    /// Maximum number of columns to sample from table-like files.
+    ///
+    /// Example:
+    ///   --content-sample-cols 30
+    #[arg(long, default_value_t = 20, value_name = "N")]
+    content_sample_cols: usize,
+
+    /// Per-extension content reading mode rule in the form EXT=MODE.
+    ///
+    /// This option is repeatable. Use it once per rule.
+    ///
+    /// Allowed modes depend on your parser, for example:
+    ///   full      read the file content fully
+    ///   sampled   read only a sampled subset
+    ///   skip      do not analyze file contents
+    ///
+    /// Examples:
+    ///   --content-mode rs=full
+    ///   --content-mode py=full
+    ///   --content-mode csv=sampled
+    ///   --content-mode bin=skip
+    #[arg(long = "content-mode", value_name = "EXT=MODE")]
+    content_modes: Vec<String>,
+
+    // -------------------------------------------------
+    // Prompt overrides: global project/file flow
     // -------------------------------------------------
     /// Override the global project-primer task prompt.
     ///
@@ -99,6 +222,17 @@ struct Args {
     #[arg(long, value_name = "TEXT")]
     content_compression_task: Option<String>,
 
+    /// Fallback content prompt used when no extension-specific or kind-specific
+    /// prompt matches a file.
+    ///
+    /// Example:
+    ///   --content-fallback "Explain the likely purpose of this file from its contents"
+    #[arg(long, value_name = "TEXT")]
+    content_fallback: Option<String>,
+
+    // -------------------------------------------------
+    // Prompt overrides: notebook tasks
+    // -------------------------------------------------
     /// Jupyter notebooks.
     ///
     /// This prompt is used in the first notebook AI pass. It should help the
@@ -130,41 +264,9 @@ struct Args {
     #[arg(long, value_name = "TEXT")]
     notebook_section_task: Option<String>,
 
-    /// Fallback content prompt used when no extension-specific or kind-specific
-    /// prompt matches a file.
-    ///
-    /// Example:
-    ///   --content-fallback "Explain the likely purpose of this file from its contents"
-    #[arg(long, value_name = "TEXT")]
-    content_fallback: Option<String>,
-
     // -------------------------------------------------
-    // Content analysis
+    // Prompt overrides: file-type specific
     // -------------------------------------------------
-    /// Enable content-based file analysis.
-    ///
-    /// Without this flag, Archeo mainly relies on filenames, paths, and project
-    /// structure. With this flag, Archeo may read and analyze file contents.
-    #[arg(long)]
-    content_analysis: bool,
-
-    /// Per-extension content reading mode rule in the form EXT=MODE.
-    ///
-    /// This option is repeatable. Use it once per rule.
-    ///
-    /// Allowed modes depend on your parser, for example:
-    ///   full      read the file content fully
-    ///   sampled   read only a sampled subset
-    ///   skip      do not analyze file contents
-    ///
-    /// Examples:
-    ///   --content-mode rs=full
-    ///   --content-mode py=full
-    ///   --content-mode csv=sampled
-    ///   --content-mode bin=skip
-    #[arg(long = "content-mode", value_name = "EXT=MODE")]
-    content_modes: Vec<String>,
-
     /// Per-extension content prompt rule in the form EXT=TEXT.
     ///
     /// This option is repeatable. Use it once per rule.
@@ -192,106 +294,13 @@ struct Args {
     ///   --kind-primer config="Explain what this configuration controls"
     #[arg(long = "kind-primer", value_name = "KIND=TEXT")]
     kind_primers: Vec<String>,
-
-    /// Maximum number of bytes to read when a file is analyzed in full mode.
-    ///
-    /// Larger files may be truncated to this limit before being sent to the model.
-    ///
-    /// Example:
-    ///   --content-max-full-bytes 50000
-    #[arg(long, default_value_t = 150_000, value_name = "N")]
-    content_max_full_bytes: usize,
-
-    /// Maximum number of rows to sample from table-like files.
-    ///
-    /// Used for CSV/TSV and similar structured text inputs when sampling is enabled.
-    ///
-    /// Example:
-    ///   --content-sample-rows 20
-    #[arg(long, default_value_t = 10, value_name = "N")]
-    content_sample_rows: usize,
-
-    /// Maximum number of columns to sample from table-like files.
-    ///
-    /// Example:
-    ///   --content-sample-cols 30
-    #[arg(long, default_value_t = 20, value_name = "N")]
-    content_sample_cols: usize,
-
-    /// Restrict content analysis to a comma-separated list of extensions.
-    ///
-    /// Only matching file extensions will be considered for content-based analysis.
-    ///
-    /// Example:
-    ///   --content-extensions rs,py,md
-    #[arg(long, value_name = "EXT1,EXT2,...")]
-    content_extensions: Option<String>,
-
-    /// Disable recursive content analysis.
-    ///
-    /// When set, Archeo analyzes only the top-level files in the selected path
-    /// for content-based processing.
-    #[arg(long)]
-    no_recursive_content: bool,
-
-    // -------------------------------------------------
-    // Scan
-    // -------------------------------------------------
-    /// YAML configuration file for scan settings.
-    ///
-    /// This may define extensions, excluded directories, size limits, and other
-    /// scanning defaults.
-    ///
-    /// Example:
-    ///   --config archeo.scan.yml
-    #[arg(long, value_name = "FILE")]
-    config: Option<String>,
-
-    /// Allowed file extension to include in the scan.
-    ///
-    /// This option is repeatable. Use it once per extension.
-    /// Extensions should usually be given without a leading dot.
-    ///
-    /// Examples:
-    ///   --ext rs
-    ///   --ext py
-    ///   --ext md
-    #[arg(long, short = 'x', value_name = "EXT")]
-    ext: Vec<String>,
-
-    /// Directory name to exclude from scanning.
-    ///
-    /// This option is repeatable. Use it once per excluded directory name.
-    /// Matching is typically done by directory name, not full path.
-    ///
-    /// Examples:
-    ///   --exclude-dir .git
-    ///   --exclude-dir target
-    ///   --exclude-dir node_modules
-    #[arg(long, value_name = "DIR")]
-    exclude_dir: Vec<String>,
-
-    /// Maximum file size in bytes allowed during scanning.
-    ///
-    /// Files larger than this limit are skipped.
-    ///
-    /// Example:
-    ///   --max-file-size 5000000
-    #[arg(long, value_name = "BYTES")]
-    max_file_size: Option<usize>,
-
-    /// Include hidden files and hidden directories.
-    ///
-    /// By default, hidden paths may be skipped.
-    #[arg(long)]
-    include_hidden: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     println!("🔍 Archeo analyzing: {}", args.path);
 
-    let ollama = Ollama::default();
+    let ollama = Ollama::new(&args.ollama_url);
 
     let installed_models = match ollama.list_models() {
         Ok(models) => models,
@@ -320,29 +329,14 @@ fn main() -> anyhow::Result<()> {
             args.model,
             installed_models.join(", ")
         );
-    }
+    }    
 
-    let scan_config = ScanConfig::from_sources(
-        args.config.as_deref(),
-        &args.ext,
-        &args.exclude_dir,
-        args.max_file_size,
-        args.include_hidden,
-    );
-    println!("{}", scan_config.describe());
-
-    let scanner = Scanner::new(scan_config.clone());
-    let files = scanner.scan(&args.path)?;
-
-    println!("Found {} files", files.len());
-    for file in &files {
-        println!("FILE: {}", file.display());
-    }
 
     // Load or create the prompt catalog
     let mut prompts = PromptDefaults::new(args.prompts_file.as_deref())?;
     println!("Using prompt catalog: {}", prompts.path.display());
 
+    // apply the user overrides
     let mut changed = prompts.apply_cli_overrides(
         args.primer_task.as_deref(),
         args.primer_extra.as_deref(),
@@ -353,8 +347,18 @@ fn main() -> anyhow::Result<()> {
     changed |= prompts.apply_content_primer_rules(&args.content_primers);
     changed |= prompts.apply_kind_primer_rules(&args.kind_primers);
 
-    if changed {
-        let prompt_snapshot_path = std::path::Path::new(&args.output).with_extension("prompts.yml");
+    let output_path = {
+    let out = PathBuf::from(&args.output);
+
+    if out.parent().is_none() || out.parent() == Some(Path::new("")) {
+            PathBuf::from(&args.path).join(out)
+        } else {
+            out
+        }
+    };
+
+    let prompt_snapshot_path = output_path.with_extension("prompts.yml");
+    if changed {    
         prompts.write_used_catalog(&prompt_snapshot_path)?;
 
         println!(
@@ -363,9 +367,63 @@ fn main() -> anyhow::Result<()> {
         );
         println!(
             "To reuse these prompts as defaults, replace {} with that file.",
-            prompts.path.display()
+            (PromptDefaults::default_global_prompt_file()?).display()
         );
+
     }
+
+    // derive extensions for scan
+    let effective_exts: Vec<String> = if args.ext.is_empty() {
+        prompts.catalog.by_extension.keys().cloned().collect()
+    } else {
+        args.ext
+            .iter()
+            .map(|s| s.trim().trim_start_matches('.').to_ascii_lowercase())
+            .collect()
+    };
+
+    // warn for missing prompt coverage
+    if !args.ext.is_empty() {
+        let known: std::collections::HashSet<_> =
+            prompts.catalog.by_extension.keys().map(|s| s.as_str()).collect();
+
+        let missing: Vec<_> = effective_exts
+            .iter()
+            .filter(|ext| !known.contains(ext.as_str()))
+            .cloned()
+            .collect();
+
+        if !missing.is_empty() {
+            eprintln!(
+                "⚠️  No content prompt defined for extensions: {}\n\
+                 These files will use fallback or generic analysis.\n\
+                 Hint: add to prompts.yml:\n\
+                    by_extension:\n\
+                        <ext>: \"Explain what this file does...\"",
+                missing.join(", ")
+            );
+        }
+    }
+
+
+    let scan_config = ScanConfig::from_sources(
+        &effective_exts,
+        &args.exclude_dir,
+        args.max_file_size,
+        args.include_hidden,
+    );
+    println!("{}", scan_config.describe());
+
+    let scanner = Scanner::new(scan_config.clone());
+    let mut files = scanner.scan(&args.path)?;
+
+    files.retain(|p| p != &output_path && p != &prompt_snapshot_path);
+
+    println!("Found {} files", files.len());
+    for file in &files {
+        println!("FILE: {}", file.display());
+    }
+
 
     let primer_config = PrimerConfig::from_sources(&files, None, None, true, true);
 
@@ -391,15 +449,23 @@ fn main() -> anyhow::Result<()> {
         String::new()
     } else {
         let mut compression_prompt = prompts.content_compression_task(None);
-
         PromptDefaults::apply_extra(&mut compression_prompt, None);
 
-        ContentAnalyzer::compress_reports_with_ai(
-            &content_reports,
-            &ollama,
-            &args.model,
-            &compression_prompt,
-        )?
+        let detailed = ContentAnalyzer::render_detailed_summary(&content_reports);
+        let final_prompt = format!(
+            "{}\n\nFile analyses:\n\n{}",
+            compression_prompt,
+            detailed
+        );
+
+        fs::write("debug_compression_prompt.txt", &compression_prompt)?;
+        fs::write("debug_compression_body.txt", &detailed)?;
+        fs::write("debug_final_compression_prompt.txt", &final_prompt)?;
+
+        let summary = ollama.generate(&args.model, &final_prompt)?;
+        fs::write("debug_content_summary.txt", &summary)?;
+
+        summary
     };
 
     // Final project-level prompt
@@ -411,7 +477,11 @@ fn main() -> anyhow::Result<()> {
         &content_summary,
     )?;
 
+    fs::write("debug_final_prompt.txt", &final_prompt)?;
+
     let response = ollama.generate(&args.model, &final_prompt)?;
+
+    fs::write("debug_final_response.txt", &response)?;
 
     let report = Report::new(
         &args.path,
@@ -436,7 +506,8 @@ fn main() -> anyhow::Result<()> {
         prompts.path.display()
     );
 
-    println!("✅ Done. Output written to {}", args.output);
+    println!("✅ Done. Output written to {}", 
+        args.output);
     println!("\n===== SUMMARY =====\n{}\n", response);
 
     Ok(())

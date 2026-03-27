@@ -118,13 +118,10 @@ impl ContentConfig {
     ///
     /// Returns an empty string if the path has no extension or if the extension
     /// cannot be represented as UTF-8.
-    pub fn extension_of(&self, path: &Path) -> String {
+    pub (crate) fn extension_of(&self, path: &Path) -> String {
         path.extension()
             .and_then(|s| s.to_str())
-            .unwrap_or("")
-            .trim()
-            .trim_start_matches('.')
-            .to_string()
+            .unwrap_or("").to_string()
     }
 
     /// Returns `true` if the path is allowed by the optional extension filter.

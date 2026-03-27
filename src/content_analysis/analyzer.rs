@@ -53,7 +53,7 @@ pub struct ContentAnalysisReport {
 #[derive(Debug, Clone)]
 pub struct ContentAnalyzer {
     /// Configuration controlling which files are analyzed and how prompts are built.
-    pub config: ContentConfig,
+    config: ContentConfig,
 }
 
 impl ContentAnalyzer {
@@ -102,7 +102,7 @@ impl ContentAnalyzer {
     /// 4. Build a [`ContentDescriptor`].
     /// 5. Build the combined file primer block.
     /// 6. Render the final AI prompt and call Ollama.
-    pub fn analyze_file(
+    fn analyze_file(
         &self,
         path: &Path,
         ollama: &Ollama,
@@ -176,7 +176,7 @@ impl ContentAnalyzer {
     /// - and optional global file-analysis extra instructions.
     ///
     /// This is the exact logical prompt block used to steer per-file analysis.
-    pub fn combined_file_primer(
+    fn combined_file_primer(
         &self,
         descriptor: &ContentDescriptor,
         prompts: &PromptDefaults,
@@ -217,11 +217,14 @@ impl ContentAnalyzer {
             out.push_str(&format!("EXTENSION: {}\n", report.extension));
             out.push_str(&format!("PARSE_MODE: {}\n", report.parse_mode));
 
+            /*
+            // Old primer only diverts the AI from the real analysis!
             if let Some(primer) = &report.primer_used {
                 out.push_str("PRIMER_USED:\n");
                 out.push_str(primer.trim());
                 out.push('\n');
             }
+            */
 
             if let Some(descriptor) = &report.descriptor {
                 out.push_str(&format!("KIND: {:?}\n", descriptor.kind));

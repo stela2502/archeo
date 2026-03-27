@@ -52,6 +52,7 @@ pub enum ContentKind {
     Unknown,
 }
 
+
 impl ContentKind {
     /// Return a stable lowercase string label for this content kind.
     ///
@@ -67,6 +68,94 @@ impl ContentKind {
             ContentKind::Data => "data",
             ContentKind::Unknown => "UNKNOWN",
         }
+    }
+}
+
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CommentStyle {
+    Slash,   // // and /* */
+    Hash,    // #
+    Dash,    // --
+    Markup,  // <!-- -->
+    None,
+}
+
+impl CommentStyle {
+    /// Returns the comment style associated with a file extension.
+    pub fn from_ext(ext: &str) -> CommentStyle {
+        match ext {
+            "rs" | "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "cs" => CommentStyle::Slash,
+            "py" | "r" | "rb" | "pl" | "sh" | "bash" | "zsh" | "toml" | "yaml" | "yml" => CommentStyle::Hash,
+            "sql" | "lua" => CommentStyle::Dash,
+            "html" | "xml" => CommentStyle::Markup,
+            _ => CommentStyle::None,
+        }
+    }
+
+    /// Classifies a line as a comment, annotation, or code.
+    fn is_multiline_start(&self, line: &str) -> bool {
+        let l = line.trim_start();
+        match self {
+            CommentStyle::Slash => l.contains("/*"),
+            CommentStyle::Markup => l.contains("<!--"),
+            _ => false,
+        }
+    }
+
+    /// Returns true if the line starts a multiline comment block.
+    fn is_multiline_end(&self, line: &str) -> bool {
+        let l = line.trim_end();
+        match self {
+            CommentStyle::Slash => l.contains("*/"),
+            CommentStyle::Markup => l.contains("-->"),
+            _ => false,
+        }
+    }
+
+    /// Returns true if the line ends a multiline comment block.
+    fn is_simple_comment(&self, line: &str) -> bool {
+        let l = line.trim_start();
+        match self {
+            CommentStyle::Slash => l.starts_with("//"),
+            CommentStyle::Hash => l.starts_with('#'),
+            CommentStyle::Dash => l.starts_with("--"),
+            CommentStyle::Markup => false,
+            CommentStyle::None => false,
+        }
+    }
+
+    /// Returns true if the line is a simple (single-line) comment.
+    pub fn strip_comments(&self, src: &str) -> String {
+        let mut out = Vec::new();
+        let mut in_multiline = false;
+
+        for line in src.lines() {
+            let trimmed = line.trim_start();
+
+            if in_multiline {
+                if self.is_multiline_end(trimmed) {
+                    in_multiline = false;
+                }
+                continue;
+            }
+
+            if self.is_simple_comment(trimmed) {
+                continue;
+            }
+
+            if self.is_multiline_start(trimmed) {
+                if !self.is_multiline_end(trimmed) {
+                    in_multiline = true;
+                }
+                continue;
+            }
+
+            out.push(line);
+        }
+
+        out.join("\n")
     }
 }
 
@@ -168,19 +257,29 @@ impl ContentDescriptor {
         let raw = fs::read_to_string(path)
             .with_context(|| format!("failed to read text file {}", path.display()))?;
 
+        let extension = config.extension_of(path);
+        let style = CommentStyle::from_ext(&extension);
+        let cleaned = style.strip_comments(&raw);
+
+        let cleaned_size = cleaned.len();
+
         let (content, is_truncated, is_sample) = match parse_mode {
             ParseMode::Full => {
-                if file_size <= config.max_full_bytes {
-                    (raw, false, false)
+                if cleaned_size <= config.max_full_bytes {
+                    (cleaned, false, false)
                 } else {
                     (
-                        Self::truncate_text_preserving_context(&raw, config.max_full_bytes),
+                        Self::truncate_text_preserving_context(&cleaned, config.max_full_bytes),
                         true,
                         false,
                     )
                 }
             }
-            ParseMode::Sampled => (Self::sample_text_lines(&raw, 50, 30, 50), true, true),
+            ParseMode::Sampled => (
+                Self::sample_text_lines(&cleaned, 50, 30, 50),
+                true,
+                true,
+            ),
             ParseMode::Skip => {
                 anyhow::bail!("skip mode should be handled before descriptor creation")
             }
@@ -201,6 +300,7 @@ impl ContentDescriptor {
             content,
         })
     }
+
 
     /// Build a descriptor for a Jupyter notebook file.
     ///

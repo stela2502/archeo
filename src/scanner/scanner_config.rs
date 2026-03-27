@@ -67,19 +67,12 @@ impl ScanConfig {
     /// YAML parsing is intentionally loose: invalid or missing YAML input falls
     /// back silently to defaults.
     pub fn from_sources(
-        config_path: Option<&str>,
         ext: &[String],
         exclude_dir: &[String],
         max_file_size: Option<usize>,
         include_hidden: bool,
     ) -> Self {
         let mut cfg = ScanConfig::default();
-
-        if let Some(path) = config_path
-            && let Ok(yaml) = Yaml::load_from_file(path)
-        {
-            cfg = ScanConfig::from_yaml_loose(&yaml);
-        }
 
         if !ext.is_empty() {
             cfg.allowed_extensions = ext.to_vec();
